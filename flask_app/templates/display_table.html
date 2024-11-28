@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+      <div class="page-container">
+            <div class="summary-container">
+                  <div class="user-summary-box">
+                        <h3>User Summary</h3>
+                        <div id="userSummaryContent">
+                              <!-- User summaries will be dynamically inserted here -->
+                        </div>
+                        <div class="total-summary">
+                              <hr>
+                              <div class="total-row">
+                                    <span>Total:</span>
+                                    <span id="grandTotal">$0</span>
+                              </div>
+                        </div>
+                  </div>
+            </div>
+
+            <table>
+                  <tr>
+                        {% for header in headings %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                        <th>Price per person</th>
+                  </tr>
+                  
+                  {% for row in data %}
+                  <tr>
+                        <td class="dropdown">
+                              <div class="form-group col-sm-8">
+                                    <div class="multiselect">
+                                          <div class="selectBox" onclick="toggleCheckboxArea(this)">
+                                                <select class="form-select">
+                                                      <option>somevalue</option>
+                                                </select>
+                                                <div class="overSelect"></div>
+                                          </div>
+                                          <div class="selectOptions">
+                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User1" /> User1</label>
+                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User2" /> User2</label>
+                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User3" /> User3</label>
+                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User4" /> User4</label>
+                                          </div>
+                                    </div>
+                              </div>
+                        </td>
+                        <td>{{row[2]}}</td>
+                        <td>{{row[3]}}</td>
+                        <td>${{row[4]}}</td>
+                        <td class="price-per-user">$0</td>
+                  </tr>
+                  {% endfor %}
+            </table>
+      </div>
+{% endblock %}

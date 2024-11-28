@@ -106,3 +106,57 @@ function toggleCheckboxArea(selectBox) {
     
     options.style.display = isVisible ? 'none' : 'block';
 }
+
+async function submitSplits() {
+    const billData = {
+        //billName: document.getElementById('billName').value || 'Untitled Bill',
+        //billDate: new Date().toISOString().split('T')[0],
+       //groupId: document.getElementById('groupId').value,
+        items: [],
+        totalAmount: 0
+    };
+
+    // Collect data from each row
+    document.querySelectorAll('tr').forEach((row, index) => {
+        if (index === 0) return; // Skip header row
+        
+        const selectedUsers = Array.from(row.querySelectorAll('input[type=checkbox]:checked'))
+            .map(cb => cb.value);
+        
+        if (selectedUsers.length > 0) {
+            const itemData = {
+                itemName: row.querySelector('td:nth-child(2)').textContent,
+                quantity: parseInt(row.querySelector('td:nth-child(3)').textContent),
+                totalPrice: parseFloat(row.querySelector('td:nth-child(4)').textContent.substring(1)),
+                detailID: parseFloat(row.querySelector('td:nth-child(5)').textContent),
+                splits: selectedUsers.map(userId => ({
+                    userId: userId,
+                    splitAmount: parseFloat(row.querySelector('.price-per-user').textContent.replace('$', ''))
+                }))
+            };
+            
+            billData.items.push(itemData);
+            billData.totalAmount += itemData.totalPrice;
+        }
+    });
+    console.log(billData);
+    try {
+        const response = await fetch('/api/bills/store', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(billData)
+        });
+
+        if (response.ok) {
+            const summary = await response.json();
+            displaySummary(summary);
+        } else {
+            throw new Error('Failed to store bill data');
+        }
+    } catch (error) {
+        console.error('Error storing bill:', error);
+        alert('Failed to store bill data. Please try again.');
+    }
+}

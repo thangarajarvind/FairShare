@@ -17,6 +17,10 @@ mycursor = mydb.cursor()
 
 @app.route('/')
 def index():
-    mycursor.execute("SELECT * FROM InvoiceDetails")
+    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID='140'")
     data = mycursor.fetchall()
-    return render_template('display_table.html', title='FairShare', headings = headers, data = data)
+
+    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
+    meta_data = mycursor.fetchall()
+
+    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)

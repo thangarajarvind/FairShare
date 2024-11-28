@@ -10,11 +10,27 @@
                         <div class="total-summary">
                               <hr>
                               <div class="total-row">
-                                    <span>Total:</span>
+                                    <span>Current Total:</span>
                                     <span id="grandTotal">$0</span>
                               </div>
+                              <div class="total-row">
+                                    <span>Bill subtotal:</span>
+                                    {% for data in meta_data %}
+                                    <span id="grandTotal">${{ data[3] }}</span>
+                                    {% endfor %}
+                              </div>
+                              <div class="total-row">
+                                    <span>Total tax:</span>
+                                    {% for data in meta_data %}
+                                    <span id="grandTotal">${{ data[4] }}</span>
+                                    {% endfor %}
+                              </div>
+                              
                         </div>
                   </div>
+                  <div class="submit-container">
+                        <button id="submitButton" class="btn btn-primary" onclick="submitSplits()">Submit Splits</button>
+                    </div>
             </div>
 
             <table>
@@ -48,6 +64,7 @@
                         <td>{{row[2]}}</td>
                         <td>{{row[3]}}</td>
                         <td>${{row[4]}}</td>
+                        <td style="display:none;">{{row[0]}}</td>
                         <td class="price-per-user">$0</td>
                   </tr>
                   {% endfor %}

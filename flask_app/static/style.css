@@ -135,7 +135,7 @@ table {
 }
 
 .price-per-user, .total-price {
-    text-align: right;
+    text-align: center;
     padding-right: 10px;
 }
 
@@ -187,4 +187,15 @@ hr {
     border: none;
     border-top: 1px solid #eee;
     margin: 10px 0;
+}
+
+.submit-container {
+  margin-top: 20px;
+  text-align: center; /* Center-aligns the button */
+}
+
+#submitButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
 }

@@ -109,9 +109,6 @@ function toggleCheckboxArea(selectBox) {
 
 async function submitSplits() {
     const billData = {
-        //billName: document.getElementById('billName').value || 'Untitled Bill',
-        //billDate: new Date().toISOString().split('T')[0],
-       //groupId: document.getElementById('groupId').value,
         items: [],
         totalAmount: 0
     };
@@ -139,7 +136,9 @@ async function submitSplits() {
             billData.totalAmount += itemData.totalPrice;
         }
     });
-    console.log(billData);
+
+    console.log('Sending bill data:', billData);  // Debug log
+
     try {
         const response = await fetch('/api/bills/store', {
             method: 'POST',
@@ -149,14 +148,28 @@ async function submitSplits() {
             body: JSON.stringify(billData)
         });
 
+        // Debug logs
+        console.log('Response status:', response.status);
+        const responseText = await response.text();
+        console.log('Response text:', responseText);
+
         if (response.ok) {
-            const summary = await response.json();
-            displaySummary(summary);
+            try {
+                const result = JSON.parse(responseText);
+                if (result.success) {
+                    window.location.href = result.redirect_url;
+                } else {
+                    throw new Error('Server indicated failure');
+                }
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                throw new Error('Invalid JSON response from server');
+            }
         } else {
-            throw new Error('Failed to store bill data');
+            throw new Error(`Server returned ${response.status}: ${responseText}`);
         }
     } catch (error) {
-        console.error('Error storing bill:', error);
-        alert('Failed to store bill data. Please try again.');
+        console.error('Detailed error:', error);
+        alert('Failed to store bill data. Check console for details.');
     }
 }

@@ -1,0 +1,122 @@
+{% extends 'base.html' %} 
+{% block content %}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        background-color: #f5f5f5;
+        overflow-y: auto;
+    }
+
+    .summary-container {
+    /* Remove position: fixed; */
+    position: relative; /* Changed from fixed */
+    top: auto; /* Resetting top alignment */
+    right: auto; /* Resetting right alignment */
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    width: 90%; /* Adjust width */
+    max-width: 800px;
+    margin: 2rem auto; /* Center the container */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+
+    .user-section {
+        margin-bottom: 2rem;
+    }
+
+    .user-items {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+    .user-items th, 
+    .user-items td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    .user-items th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .actions {
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .button {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .total-section {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+    }
+</style>
+
+<div class="summary-container">
+    <h2>Split Summary</h2>
+
+    {% for user, amount in splits %}
+    <div class="user-section">
+        <h3>{{ user }}'s Share</h3>
+        <table class="user-items">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Original Price</th>
+                    <th>Split Between</th>
+                    <th>Your Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    {% for split in item.splits %}
+                        {% if split.userId == user %}
+                        <tr>
+                            <td>{{ item.itemName }}</td>
+                            <td>${{ "%.2f"|format(item.totalPrice) }}</td>
+                            <td>{{ item.splits|length }} people</td>
+                            <td>${{ "%.2f"|format(split.splitAmount) }}</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="total-section">
+            <span>Total to Pay</span>
+            <span>${{ "%.2f"|format(amount) }}</span>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="actions">
+        <a href="/" class="button">Back to Invoice</a>
+    </div>
+</div>
+
+{% endblock %}

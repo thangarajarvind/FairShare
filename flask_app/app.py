@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, url_for
 import traceback
 import mysql.connector
+import re
 
 app = Flask(__name__)
 
@@ -12,6 +13,62 @@ mydb = mysql.connector.connect(
 )
 
 mycursor = mydb.cursor()
+
+@app.route('/register', methods =['GET', 'POST'])
+def register():
+    msg = ''  # Initialize with empty string
+    print(f"Request method: {request.method}")  # Debug print
+    
+    if request.method == 'POST':
+        if 'username' in request.form and 'password' in request.form and 'email' in request.form:
+            username = request.form['username']
+            password = request.form['password']
+            email = request.form['email']
+            
+            try:
+                # Create new cursors for each operation
+                check_cursor = mydb.cursor()
+                check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+                username_check = check_cursor.fetchone()
+                check_cursor.close()
+                print(f"Username check result: {username_check}")  # Debug print
+                
+                if username_check:
+                    msg = 'Username already exists !'
+                else:
+                    check_cursor = mydb.cursor()
+                    check_cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+                    email_check = check_cursor.fetchone()
+                    check_cursor.close()
+                    print(f"Email check result: {email_check}")  # Debug print
+                    
+                    if email_check:
+                        msg = 'Email already exists !'
+                    elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
+                        msg = 'Invalid email address !'
+                    elif not re.match(r'[A-Za-z0-9]+', username):
+                        msg = 'Username must contain only characters and numbers !'
+                    elif not username or not password or not email:
+                        msg = 'Please fill out the form !'
+                    else:
+                        insert_cursor = mydb.cursor()
+                        insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
+                                            (username, email, password))
+                        mydb.commit()
+                        insert_cursor.close()
+                        msg = 'You have successfully registered !'
+                
+            except mysql.connector.Error as err:
+                print(f"Database error: {err}")  # Debug print
+                msg = 'Database error occurred!'
+                mydb.rollback()
+                
+    else:  # GET request
+        msg = ''  # Ensure empty message for GET requests
+        
+    print(f"Final message: {msg}")  # Debug print
+    return render_template('register.html', msg = msg)
+
 
 @app.route('/')
 def index():

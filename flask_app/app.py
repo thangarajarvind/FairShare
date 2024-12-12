@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, url_for
+from flask import Flask, render_template, request, jsonify, session, url_for, redirect
 import traceback
 import mysql.connector
 import re
@@ -68,6 +68,45 @@ def register():
         
     print(f"Final message: {msg}")  # Debug print
     return render_template('register.html', msg = msg)
+
+@app.route('/login', methods =['GET', 'POST'])
+def login():
+    msg = ''  # Initialize with empty string
+    print(f"Request method: {request.method}")  # Debug print
+    
+    if request.method == 'POST':
+        if 'username' in request.form and 'password' in request.form:
+            username = request.form['username']
+            password = request.form['password']
+            
+            try:
+                # Create new cursors for each operation
+                check_cursor = mydb.cursor()
+                check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+                username_present = check_cursor.fetchone()
+                check_cursor.close()
+                print(f"Username check result: {username_present}")  # Debug print
+                
+                if username_present:
+                    check_cursor = mydb.cursor()
+                    check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username,password,))
+                    pass_check = check_cursor.fetchone()
+                    check_cursor.close()
+                    if(pass_check):
+                        print("check")
+                        return redirect(url_for('index'))
+                    else:
+                        print("Incorrect password")
+                else:
+                    print("Username not found")
+                
+            except mysql.connector.Error as err:
+                print(f"Database error: {err}")  # Debug print
+                msg = 'Database error occurred!'
+                mydb.rollback()
+        
+    print(f"Final message: {msg}")  # Debug print
+    return render_template('login.html', msg = msg)
 
 
 @app.route('/')

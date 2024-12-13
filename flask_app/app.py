@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, url_for, redirect
+from flask import Flask, render_template, request, jsonify, session, url_for
 import traceback
 import mysql.connector
 import re
@@ -8,6 +8,7 @@ from decimal import *
 import random
 import string
 
+from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 mydb = mysql.connector.connect(
@@ -51,13 +52,13 @@ def register():
                     print(f"Email check result: {email_check}") 
                     
                     if email_check:
-                        msg = 'Email already exists!'
+                        msg = 'Email already exists !'
                     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-                        msg = 'Invalid email address!'
+                        msg = 'Invalid email address !'
                     elif not re.match(r'[A-Za-z0-9]+', username):
-                        msg = 'Username must contain only characters and numbers!'
+                        msg = 'Username must contain only characters and numbers !'
                     elif not username or not password or not email:
-                        msg = 'Please fill out the form!'
+                        msg = 'Please fill out the form !'
                     else:
                         insert_cursor = mydb.cursor()
                         insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
@@ -142,46 +143,9 @@ def split():
     mycursor.execute("Select * from Invoice where InvoiceID='140'")
     meta_data = mycursor.fetchall()
 
-    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
-    user_id_list = mycursor.fetchall()
+    headers = ("","Item name", "Quantity", "Price")
 
-    user_name_list = []
-    for i in user_id_list:
-        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
-        user_name = mycursor.fetchall()
-        user_name_list.append(user_name[0][0])
-
-    headers = ("", "Item name", "Quantity", "Price")
-    
-    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
-
-#new
-@app.route('/homepage')
-def homepage():
-    return render_template('index.html')
-
-@app.route('/')
-def index():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login')) 
-    
-    try:
-        # Fetch groups associated with the logged-in user
-        query = """
-        SELECT g.group_id, g.group_name 
-        FROM groups g 
-        JOIN user_groups ug ON g.group_id = ug.group_id 
-        WHERE ug.user_id = %s
-        """
-        mycursor.execute(query, (user_id,))
-        groups = mycursor.fetchall()
-        
-        return render_template('group_list.html', groups=groups)
-    except Exception as e:
-        print("Error fetching groups:", str(e))
-        return "An error occurred loading the groups", 500
-
+    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():

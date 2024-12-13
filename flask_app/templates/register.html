@@ -1,4 +1,5 @@
 {% extends 'base.html' %} 
+{% include "sweetalerts.html" %}
 {% block content %}
 
 <style>
@@ -92,8 +93,8 @@ button:hover {
 <div class="container">
     <h1>Sign Up</h1>
     <p>Please fill in this form to create an account.</p>
-    <form action="{{ url_for('register') }}" method="post">
-        <div class="msg">{{ msg }}</div>
+    <form action="{{ url_for('register') }}" method="post" id="registerForm">
+        <div class="msg" style="display: none;">{{ msg }}</div>
 
         <label for="username"><b>Username</b></label>
         <input type="text" name="username" placeholder="Enter Username" required>
@@ -119,17 +120,68 @@ button:hover {
 </div>
 
 <script>
-    window.onload = function() {
-        // Clear any existing message when the page loads
-        document.querySelector('.msg').textContent = '';
-        
-        // Optional: Clear message when user starts typing
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', function() {
-                document.querySelector('.msg').textContent = '';
-            });
-        });
-    }
-    </script>
+  // Prevent form resubmission on page refresh
+  if (window.history.replaceState) {
+      window.history.replaceState(null, null, window.location.href);
+  }
+  
+  window.onload = function() {
+      const msgElement = document.querySelector('.msg');
+      const message = msgElement.textContent.trim();
+      
+      // Check if there's a message
+      if (message) {
+          if (message.includes('successfully registered')) {
+              // Show success message and redirect
+              Swal.fire({
+                  title: 'Success!',
+                  text: 'Your account has been created successfully!',
+                  icon: 'success',
+                  confirmButtonText: 'Continue to Login',
+                  confirmButtonColor: '#0eb7f4',
+                  allowOutsideClick: false
+              }).then((result) => {
+                  if (result.isConfirmed) {
+                      window.location.href = "{{ url_for('login') }}";
+                  }
+              });
+          } else {
+              // Show error messages
+              Swal.fire({
+                  title: message.includes('username already') ? 'Invalid Username' : 
+                         message.includes('Invalid') ? 'Check email address' : 
+                         message.includes('numbers') ? 'Invalid Username' : 
+                         message.includes('form') ? 'Missing details' : 
+                         message.includes('Email already') ? 'Invalid Email' : 'Error',
+                  text: message,
+                  icon: 'error',
+                  confirmButtonText: 'Try Again',
+                  confirmButtonColor: '#0eb7f4'
+              });
+          }
+      }
+      
+      // Clear any existing message
+      msgElement.textContent = '';
+      
+      // Clear message when user starts typing
+      document.querySelectorAll('input').forEach(input => {
+          input.addEventListener('input', function() {
+              msgElement.textContent = '';
+          });
+      });
+      
+      // Add form submit handler if form exists
+      const registerForm = document.getElementById('registerForm');
+      if (registerForm) {
+          registerForm.addEventListener('submit', function() {
+              setTimeout(function() {
+                  window.onbeforeunload = null;
+              }, 100);
+          });
+      }
+  }
+</script>
+
 
 {% endblock %}

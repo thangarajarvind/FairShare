@@ -1,4 +1,5 @@
 {% extends 'base.html' %} 
+{% include "sweetalerts.html" %}
 {% block content %}
 
 <style>
@@ -92,8 +93,8 @@ button:hover {
 <div class="container">
     <h1>Log in</h1>
     <p>Please enter the details to login.</p>
-    <form action="{{ url_for('login') }}" method="post">
-        <div class="msg">{{ msg }}</div>
+    <form action="{{ url_for('login') }}" method="post" id="loginForm">
+        <div class="msg" style="display: none;">{{ msg }}</div>
 
         <label for="username"><b>Username</b></label>
         <input type="text" name="username" placeholder="Enter Username" required>
@@ -116,17 +117,47 @@ button:hover {
 </div>
 
 <script>
+    // Prevent form resubmission on page refresh
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    
     window.onload = function() {
-        // Clear any existing message when the page loads
-        document.querySelector('.msg').textContent = '';
+        const msgElement = document.querySelector('.msg');
+        const message = msgElement.textContent.trim();
         
-        // Optional: Clear message when user starts typing
+        // Check if there's an error message
+        if (message) {
+            Swal.fire({
+                title: message.includes('password') ? 'Invalid Password' : 
+                       message.includes('Username') ? 'Invalid Username' : 'Error',
+                text: message,
+                icon: 'error',
+                confirmButtonText: 'Try Again',
+                confirmButtonColor: '#0eb7f4'
+            });
+        }
+        
+        // Clear any existing message
+        msgElement.textContent = '';
+        
+        // Clear message when user starts typing
         document.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', function() {
-                document.querySelector('.msg').textContent = '';
+                msgElement.textContent = '';
             });
         });
+        
+        // Add form submit handler if form exists
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function() {
+                setTimeout(function() {
+                    window.onbeforeunload = null;
+                }, 100);
+            });
+        }
     }
-    </script>
+</script>
 
 {% endblock %}

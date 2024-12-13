@@ -43,13 +43,13 @@ def register():
                     print(f"Email check result: {email_check}")  # Debug print
                     
                     if email_check:
-                        msg = 'Email already exists !'
+                        msg = 'Email already exists!'
                     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-                        msg = 'Invalid email address !'
+                        msg = 'Invalid email address!'
                     elif not re.match(r'[A-Za-z0-9]+', username):
-                        msg = 'Username must contain only characters and numbers !'
+                        msg = 'Username must contain only characters and numbers!'
                     elif not username or not password or not email:
-                        msg = 'Please fill out the form !'
+                        msg = 'Please fill out the form!'
                     else:
                         insert_cursor = mydb.cursor()
                         insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
@@ -69,45 +69,42 @@ def register():
     print(f"Final message: {msg}")  # Debug print
     return render_template('register.html', msg = msg)
 
-@app.route('/login', methods =['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    msg = ''  # Initialize with empty string
-    print(f"Request method: {request.method}")  # Debug print
+    # For GET requests, just render the template
+    if request.method == 'GET':
+        return render_template('login.html', msg='')
     
-    if request.method == 'POST':
-        if 'username' in request.form and 'password' in request.form:
-            username = request.form['username']
-            password = request.form['password']
-            
-            try:
-                # Create new cursors for each operation
-                check_cursor = mydb.cursor()
-                check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-                username_present = check_cursor.fetchone()
-                check_cursor.close()
-                print(f"Username check result: {username_present}")  # Debug print
-                
-                if username_present:
-                    check_cursor = mydb.cursor()
-                    check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username,password,))
-                    pass_check = check_cursor.fetchone()
-                    check_cursor.close()
-                    if(pass_check):
-                        print("check")
-                        return redirect(url_for('index'))
-                    else:
-                        print("Incorrect password")
-                else:
-                    print("Username not found")
-                
-            except mysql.connector.Error as err:
-                print(f"Database error: {err}")  # Debug print
-                msg = 'Database error occurred!'
-                mydb.rollback()
+    # Only process login for actual POST requests with form data
+    msg = ''
+    if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
+        username = request.form['username']
+        password = request.form['password']
         
-    print(f"Final message: {msg}")  # Debug print
-    return render_template('login.html', msg = msg)
-
+        try:
+            check_cursor = mydb.cursor()
+            check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+            username_present = check_cursor.fetchone()
+            check_cursor.close()
+            
+            if username_present:
+                check_cursor = mydb.cursor()
+                check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
+                pass_check = check_cursor.fetchone()
+                check_cursor.close()
+                
+                if pass_check:
+                    return redirect(url_for('index'))
+                else:
+                    msg = "Incorrect password!"
+            else:
+                msg = "Username not found!"
+                
+        except mysql.connector.Error as err:
+            msg = 'Database error occurred!'
+            mydb.rollback()
+    
+    return render_template('login.html', msg=msg)
 
 @app.route('/')
 def index():
@@ -177,7 +174,7 @@ def bill_summary():
         invoice_data = mycursor.fetchall()
         
         return render_template('bill_summary.html',
-                             splits=bill_data.get('splits', []),
+                               splits=bill_data.get('splits', []),
                              items=bill_data.get('items', []),
                              invoice=invoice_data[0],
                              title='Bill Summary')

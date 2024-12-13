@@ -1,8 +1,14 @@
-from flask import Flask, render_template, request, jsonify, session, url_for, redirect
+from flask import Flask, render_template, request, jsonify, session, url_for
 import traceback
 import mysql.connector
 import re
+import subprocess
+import os
+import pdfplumber
 
+from datetime import datetime
+
+from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 mydb = mysql.connector.connect(
@@ -43,13 +49,13 @@ def register():
                     print(f"Email check result: {email_check}")  # Debug print
                     
                     if email_check:
-                        msg = 'Email already exists!'
+                        msg = 'Email already exists !'
                     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-                        msg = 'Invalid email address!'
+                        msg = 'Invalid email address !'
                     elif not re.match(r'[A-Za-z0-9]+', username):
-                        msg = 'Username must contain only characters and numbers!'
+                        msg = 'Username must contain only characters and numbers !'
                     elif not username or not password or not email:
-                        msg = 'Please fill out the form!'
+                        msg = 'Please fill out the form !'
                     else:
                         insert_cursor = mydb.cursor()
                         insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
@@ -69,42 +75,6 @@ def register():
     print(f"Final message: {msg}")  # Debug print
     return render_template('register.html', msg = msg)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    # For GET requests, just render the template
-    if request.method == 'GET':
-        return render_template('login.html', msg='')
-    
-    # Only process login for actual POST requests with form data
-    msg = ''
-    if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
-        username = request.form['username']
-        password = request.form['password']
-        
-        try:
-            check_cursor = mydb.cursor()
-            check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-            username_present = check_cursor.fetchone()
-            check_cursor.close()
-            
-            if username_present:
-                check_cursor = mydb.cursor()
-                check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
-                pass_check = check_cursor.fetchone()
-                check_cursor.close()
-                
-                if pass_check:
-                    return redirect(url_for('index'))
-                else:
-                    msg = "Incorrect password!"
-            else:
-                msg = "Username not found!"
-                
-        except mysql.connector.Error as err:
-            msg = 'Database error occurred!'
-            mydb.rollback()
-    
-    return render_template('login.html', msg=msg)
 
 @app.route('/')
 def index():
@@ -117,6 +87,54 @@ def index():
     headers = ("","Item name", "Quantity", "Price")
 
     return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
+
+
+@app.route('/upload-pdf', methods=['GET', 'POST'])
+def upload_pdf():
+    if request.method == 'POST':
+        
+        pass
+    return render_template('upload-pdf.html')
+
+@app.route("/process-pdf", methods =['GET', 'POST'])
+def process_pdf():
+    UPLOAD_FOLDER = 'uploads'
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure the uploads folder exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    # Check if a file is uploaded
+    if 'pdf_file' not in request.files:
+        return "No file uploaded", 400
+
+    pdf_file = request.files['pdf_file']
+    if pdf_file.filename == '':
+        return "No file selected", 400
+    
+    # Save the file to the upload folder
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_file.filename))
+    pdf_file.save(file_path)
+
+    try:
+        test1_script_path = "../test1.py"
+        # Execute the script using subprocess
+        result = subprocess.run(
+            ["python", test1_script_path],  # Command to execute the external script
+            text=True,  # Return output as string
+            capture_output=True  # Capture stdout and stderr
+        )
+
+        # Check if the script executed successfully
+        if result.returncode == 0:
+            print("inside it ")
+            return f"Script Output:\n{result.stdout}"
+        else:
+            return f"Script Error:\n{result.stderr}", 500
+
+    except Exception as e:
+        return f"Error executing script: {str(e)}", 500 
+
+    
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():
@@ -174,11 +192,15 @@ def bill_summary():
         invoice_data = mycursor.fetchall()
         
         return render_template('bill_summary.html',
-                               splits=bill_data.get('splits', []),
-                             items=bill_data.get('items', []),
-                             invoice=invoice_data[0],
-                             title='Bill Summary')
+                            splits=bill_data.get('splits', []),
+                            items=bill_data.get('items', []),
+                            invoice=invoice_data[0],
+                            title='Bill Summary')
     except Exception as e:
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the summary", 500
+
+if __name__ == '__main__':
+    app.run(port=5009, debug=True)
+    

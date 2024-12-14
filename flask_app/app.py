@@ -173,7 +173,10 @@ def process_pdf():
     # Save the file to the upload folder
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_file.filename))
     pdf_file.save(file_path)
+    
+    new_name = os.path.join(app.config['UPLOAD_FOLDER'], 'reciept.pdf')
 
+    os.rename(file_path, new_name)
     try:
         test1_script_path = "../test1.py"
         # Execute the script using subprocess

@@ -111,6 +111,14 @@ def process_pdf():
     if pdf_file.filename == '':
         return "No file selected", 400
     
+    if os.listdir(UPLOAD_FOLDER):
+        for item in os.listdir(UPLOAD_FOLDER):
+            item_path = os.path.join(UPLOAD_FOLDER, item)
+            if os.path.isfile(item_path):
+                os.unlink(item_path)  # Delete file 
+        
+
+
     # Save the file to the upload folder
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_file.filename))
     pdf_file.save(file_path)

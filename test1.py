@@ -6,7 +6,7 @@ import mysql.connector
 from datetime import datetime
 
 # Initialize reader and datasets
-reader = PdfReader("uploads/test2.pdf")
+reader = PdfReader("uploads/reciept.pdf")
 product_data = pd.DataFrame(columns=["Product_Name", "Qnt", "Price"])
 totals_data = {"Subtotal": None, "Savings": None, "Tax": None, "Total": None}
 meta_data = {"Date": None, "Order_Number": None}

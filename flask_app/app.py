@@ -182,3 +182,13 @@ def bill_summary():
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the summary", 500
+    
+@app.route('/group-list')
+def group_list():
+    mycursor.execute("SELECT group_id FROM user_groups WHERE user_id = '1'")
+    group_list = mycursor.fetchall()
+
+    parsed_group = []
+    for i in group_list:
+        parsed_group.append(i[0])
+    return render_template('group_list.html',blocks = parsed_group)

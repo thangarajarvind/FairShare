@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify, session, url_for, re
 import traceback
 import mysql.connector
 import re
+from flaskext.mysql import MySQL
+from flask_session import Session
 
 app = Flask(__name__)
 
@@ -11,13 +13,16 @@ mydb = mysql.connector.connect(
   password = "",
   database = "InvoiceDB"
 )
-
+app.config['SECRET_KEY'] = 'FairShare'
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config.from_object(__name__)
+Session(app)
 mycursor = mydb.cursor()
 
 @app.route('/register', methods =['GET', 'POST'])
 def register():
-    msg = ''  # Initialize with empty string
-    print(f"Request method: {request.method}")  # Debug print
+    msg = ''  
+    print(f"Request method: {request.method}") 
     
     if request.method == 'POST':
         if 'username' in request.form and 'password' in request.form and 'email' in request.form:
@@ -26,12 +31,11 @@ def register():
             email = request.form['email']
             
             try:
-                # Create new cursors for each operation
                 check_cursor = mydb.cursor()
                 check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
                 username_check = check_cursor.fetchone()
                 check_cursor.close()
-                print(f"Username check result: {username_check}")  # Debug print
+                print(f"Username check result: {username_check}") 
                 
                 if username_check:
                     msg = 'Username already exists !'
@@ -40,7 +44,7 @@ def register():
                     check_cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
                     email_check = check_cursor.fetchone()
                     check_cursor.close()
-                    print(f"Email check result: {email_check}")  # Debug print
+                    print(f"Email check result: {email_check}") 
                     
                     if email_check:
                         msg = 'Email already exists!'
@@ -59,23 +63,17 @@ def register():
                         msg = 'You have successfully registered !'
                 
             except mysql.connector.Error as err:
-                print(f"Database error: {err}")  # Debug print
+                print(f"Database error: {err}")
                 msg = 'Database error occurred!'
                 mydb.rollback()
                 
-    else:  # GET request
-        msg = ''  # Ensure empty message for GET requests
+    else: 
+        msg = ''  
         
-    print(f"Final message: {msg}")  # Debug print
+    print(f"Final message: {msg}") 
     return render_template('register.html', msg = msg)
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # For GET requests, just render the template
-    if request.method == 'GET':
-        return render_template('login.html', msg='')
-    
-    # Only process login for actual POST requests with form data
     msg = ''
     if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
         username = request.form['username']
@@ -94,6 +92,7 @@ def login():
                 check_cursor.close()
                 
                 if pass_check:
+                    session['user_id'] = pass_check[0]
                     return redirect(url_for('index'))
                 else:
                     msg = "Incorrect password!"
@@ -105,18 +104,34 @@ def login():
             mydb.rollback()
     
     return render_template('login.html', msg=msg)
-
 @app.route('/')
 def index():
-    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID='140'")
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login')) 
+    
+    # Fetch the invoices and invoice details relevant to the logged-in user
+    # mycursor.execute("""
+    #     SELECT * FROM InvoiceDetails
+    #     WHERE InvoiceID IN (
+    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+    #     )
+    # """, (user_id,))
+    
+    mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
     data = mycursor.fetchall()
 
-    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
+    # mycursor.execute("""
+    #     SELECT * FROM Invoice
+    #     WHERE InvoiceID IN (
+    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+    #     )
+    # """, (user_id,))
     meta_data = mycursor.fetchall()
 
-    headers = ("","Item name", "Quantity", "Price")
-
-    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
+    headers = ("", "Item name", "Quantity", "Price")
+    
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():
@@ -162,22 +177,28 @@ def receive_api_data():
         }), 500
 
 app.secret_key = 'FairShare'
-
 @app.route('/bill-summary')
 def bill_summary():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+    
     try:
-        # Get bill data from session
         bill_data = session.get('bill_data', {})
-        
-        # Fetch original invoice data
-        mycursor.execute("SELECT * FROM Invoice WHERE InvoiceID = '140'")
+
+        mycursor.execute("""
+            SELECT * FROM Invoice
+            WHERE InvoiceID IN (
+                SELECT InvoiceID FROM user_groups WHERE user_id = %s
+            )
+        """, (user_id,))
         invoice_data = mycursor.fetchall()
         
         return render_template('bill_summary.html',
                                splits=bill_data.get('splits', []),
-                             items=bill_data.get('items', []),
-                             invoice=invoice_data[0],
-                             title='Bill Summary')
+                               items=bill_data.get('items', []),
+                               invoice=invoice_data[0],
+                               title='Bill Summary')
     except Exception as e:
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())

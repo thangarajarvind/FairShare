@@ -153,6 +153,9 @@ def login():
 #     return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
 
 #new
+@app.route('/homepage')
+def homepage():
+    return render_template('index.html')
 
 @app.route('/')
 def index():
@@ -442,3 +445,79 @@ def confirm_splits():
             'success': False,
             'error': str(e)
         }), 500
+
+# @app.route('/split-summary/<int:invoice_id>', methods=['GET'])
+# def split_summary(invoice_id):
+#     user_id = session.get('user_id')
+#     if not user_id:
+#         return redirect(url_for('login'))  # Redirect to login if not authenticated
+    
+#     try:
+#         # Fetch invoice details for the specific InvoiceID
+#         mycursor.execute("""
+#             SELECT id.DetailID, id.ItemName, id.Quantity, id.Price, us.user_id, us.split_amount
+#             FROM InvoiceDetails id
+#             JOIN user_item_splits us ON id.DetailID = us.DetailID
+#             WHERE id.InvoiceID = %s
+#         """, (invoice_id,))
+#         data = mycursor.fetchall()
+
+#         # Organize data by username
+#         result = {}
+#         for row in data:
+#             detail_id, item_name, quantity, price, user_id, split_amount = row
+#             original_price = price * quantity
+#             total_shares = sum(1 for r in data if r[0] == detail_id)  # Total number of shares
+#             user_share = split_amount * total_shares
+
+#             # Get the username for this user_id
+#             mycursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
+#             username = mycursor.fetchone()[0]
+
+#             if username not in result:
+#                 result[username] = []
+
+#             result[username].append({
+#                 'ItemName': item_name,
+#                 'Quantity': quantity,
+#                 'OriginalPrice': original_price,
+#                 'Shares': total_shares,
+#                 'YourShare': user_share
+#             })
+
+#         return render_template('split_summary.html', result=result)
+
+#     except Exception as e:
+#         print("Error in split-summary:", str(e))
+#         return "An error occurred", 500
+
+@app.route('/split-summary/<int:invoice_id>')
+def split_summary(invoice_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    try:
+        # Query to fetch item splits and related details
+        query = """
+        SELECT id.ItemName, id.Quantity, id.Price, u.username, us.split_amount, us.created_at 
+        FROM user_item_splits us
+        JOIN InvoiceDetails id ON id.DetailID = us.DetailID
+        JOIN users u ON u.user_id = us.user_id
+        WHERE id.InvoiceID = %s
+        """
+        mycursor.execute(query, (invoice_id,))
+        data = mycursor.fetchall()
+
+        # Group data by username for display
+        user_groups = {}
+        for row in data:
+            username = row[3]  # 'username' is the 4th column (index 3) in the tuple
+            if username not in user_groups:
+                user_groups[username] = {'items': [], 'total_share': Decimal(0)}
+            user_groups[username]['items'].append(row)
+            user_groups[username]['total_share'] += row[4]  # 'split_amount' is the 5th column (index 4)
+
+        return render_template('split_summary.html', user_groups=user_groups)
+    except Exception as e:
+        print("Error in split_summary:", str(e))
+        return "An error occurred loading the split summary", 500

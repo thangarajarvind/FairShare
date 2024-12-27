@@ -114,43 +114,44 @@ def login():
     return render_template('login.html', msg=msg)
 
 
-# @app.route('/')
-# def index():
-#     user_id = session.get('user_id')
-#     if not user_id:
-#         return redirect(url_for('login')) 
+@app.route('/split-page')
+def split():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login')) 
     
-#     # Fetch the invoices and invoice details relevant to the logged-in user
-#     # mycursor.execute("""
-#     #     SELECT * FROM InvoiceDetails
-#     #     WHERE InvoiceID IN (
-#     #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-#     #     )
-#     # """, (user_id,))
+    #Fetch the invoices and invoice details relevant to the logged-in user
+    # mycursor.execute("""
+    #     SELECT * FROM InvoiceDetails
+    #     WHERE InvoiceID IN (
+    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+    #     )
+    # """, (user_id,))
     
-#     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
-#     data = mycursor.fetchall()
+    mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+    data = mycursor.fetchall()
 
-#     # mycursor.execute("""
-#     #     SELECT * FROM Invoice
-#     #     WHERE InvoiceID IN (
-#     #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-#     #     )
-#     # """, (user_id,))
-#     meta_data = mycursor.fetchall()
+    # mycursor.execute("""
+    #     SELECT * FROM Invoice
+    #     WHERE InvoiceID IN (
+    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+    #     )
+    # """, (user_id,))
+    mycursor.execute("Select * from Invoice where InvoiceID='140'")
+    meta_data = mycursor.fetchall()
 
-#     mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
-#     user_id_list = mycursor.fetchall()
+    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
+    user_id_list = mycursor.fetchall()
 
-#     user_name_list = []
-#     for i in user_id_list:
-#         mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
-#         user_name = mycursor.fetchall()
-#         user_name_list.append(user_name[0][0])
+    user_name_list = []
+    for i in user_id_list:
+        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
+        user_name = mycursor.fetchall()
+        user_name_list.append(user_name[0][0])
 
-#     headers = ("", "Item name", "Quantity", "Price")
+    headers = ("", "Item name", "Quantity", "Price")
     
-#     return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
 
 #new
 
@@ -290,6 +291,8 @@ def group_invoices(group_id):
 
         if not group:
             return "Group not found", 404  # If the group does not exist in the groups table
+        
+        group_code = group.get('code')
 
         # Step 2: Fetch the user_group_id based on user_id and group_id
         mycursor.execute("""
@@ -314,7 +317,7 @@ def group_invoices(group_id):
 
         mycursor.close()
 
-        return render_template('invoices.html', invoices=invoices, group_id=group_id)
+        return render_template('invoices.html', invoices=invoices, group_id=group_id, group_code = group_code)
     
     except Exception as e:
         print("Error in group_invoices:", str(e))

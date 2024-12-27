@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, url_for, re
 import traceback
 import mysql.connector
 import re
+from decimal import *
 
 app = Flask(__name__)
 
@@ -11,7 +12,6 @@ mydb = mysql.connector.connect(
   password = "",
   database = "InvoiceDB"
 )
-
 mycursor = mydb.cursor()
 
 @app.route('/register', methods =['GET', 'POST'])
@@ -114,9 +114,18 @@ def index():
     mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
     meta_data = mycursor.fetchall()
 
+    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
+    user_id_list = mycursor.fetchall()
+
+    user_name_list = []
+    for i in user_id_list:
+        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
+        user_name = mycursor.fetchall()
+        user_name_list.append(user_name[0][0])
+
     headers = ("","Item name", "Quantity", "Price")
 
-    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
+    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data, group_data = user_name_list)
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():
@@ -192,3 +201,76 @@ def group_list():
     for i in group_list:
         parsed_group.append(i[0])
     return render_template('group_list.html',blocks = parsed_group)
+
+@app.route('/confirm-splits', methods=['POST'])
+def confirm_splits():
+    try:
+        # Get bill data from session
+        bill_data = session.get('bill_data', {})
+        if not bill_data:
+            return jsonify({
+                'success': False,
+                'error': 'No bill data found in session'
+            }), 400
+
+        cursor = mydb.cursor()
+        
+        try:
+            # Start transaction
+            mydb.start_transaction()
+            
+            # Process each item and its splits
+            for item in bill_data['items']:
+                detail_id = item['detailID']
+                
+                # First delete any existing splits for this item
+                cursor.execute(
+                    'DELETE FROM user_item_splits WHERE DetailID = %s',
+                    (detail_id,)
+                )
+                
+                # Insert new splits
+                for split in item['splits']:
+                    username = split['userId']
+                    mycursor.execute("SELECT user_id FROM users where username='"+username+"'")
+                    user_id = mycursor.fetchall()
+                    user = user_id[0][0]
+                    cursor.execute('''
+                        INSERT INTO user_item_splits 
+                        (DetailID, user_id, split_amount)
+                        VALUES (%s, %s, %s)
+                    ''', (
+                        detail_id,
+                        str(user),
+                        Decimal(str(split['splitAmount']))
+                    ))
+            
+            # Commit transaction
+            mydb.commit()
+            
+            # Clear the bill data from session
+            session.pop('bill_data', None)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Splits confirmed successfully'
+            })
+            
+        except mysql.connector.Error as err:
+            # Rollback in case of error
+            mydb.rollback()
+            print(f"Database error: {err}")
+            return jsonify({
+                'success': False,
+                'error': f"Database error: {str(err)}"
+            }), 500
+            
+        finally:
+            cursor.close()
+            
+    except Exception as e:
+        print(f"Error in confirm_splits: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

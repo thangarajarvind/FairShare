@@ -173,3 +173,33 @@ async function submitSplits() {
         alert('Failed to store bill data. Check console for details.');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmButton = document.querySelector('.button1');
+    if (confirmButton) {
+        confirmButton.addEventListener('click', async function(e) {
+            e.preventDefault(); // Prevent the default anchor behavior
+            
+            try {
+                const response = await fetch('/confirm-splits', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Splits confirmed successfully!');
+                    window.location.href = '/'; // Redirect to home page
+                } else {
+                    alert('Error confirming splits: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to confirm splits. Please try again.');
+            }
+        });
+    }
+});

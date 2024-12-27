@@ -53,10 +53,9 @@
                                                 <div class="overSelect"></div>
                                           </div>
                                           <div class="selectOptions">
-                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User1" /> User1</label>
-                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User2" /> User2</label>
-                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User3" /> User3</label>
-                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="User4" /> User4</label>
+                                                {% for user in group_data %}
+                                                <label><input type="checkbox" onchange="checkboxStatusChange(this)" value="{{ user }}" />{{ user }}</label>
+                                                {% endfor %}
                                           </div>
                                     </div>
                               </div>

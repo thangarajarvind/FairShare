@@ -114,43 +114,68 @@ def login():
     return render_template('login.html', msg=msg)
 
 
+# @app.route('/')
+# def index():
+#     user_id = session.get('user_id')
+#     if not user_id:
+#         return redirect(url_for('login')) 
+    
+#     # Fetch the invoices and invoice details relevant to the logged-in user
+#     # mycursor.execute("""
+#     #     SELECT * FROM InvoiceDetails
+#     #     WHERE InvoiceID IN (
+#     #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+#     #     )
+#     # """, (user_id,))
+    
+#     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+#     data = mycursor.fetchall()
+
+#     # mycursor.execute("""
+#     #     SELECT * FROM Invoice
+#     #     WHERE InvoiceID IN (
+#     #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+#     #     )
+#     # """, (user_id,))
+#     meta_data = mycursor.fetchall()
+
+#     mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
+#     user_id_list = mycursor.fetchall()
+
+#     user_name_list = []
+#     for i in user_id_list:
+#         mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
+#         user_name = mycursor.fetchall()
+#         user_name_list.append(user_name[0][0])
+
+#     headers = ("", "Item name", "Quantity", "Price")
+    
+#     return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
+
+#new
+
 @app.route('/')
 def index():
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('login')) 
     
-    # Fetch the invoices and invoice details relevant to the logged-in user
-    # mycursor.execute("""
-    #     SELECT * FROM InvoiceDetails
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    
-    mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
-    data = mycursor.fetchall()
+    try:
+        # Fetch groups associated with the logged-in user
+        query = """
+        SELECT g.group_id, g.group_name 
+        FROM groups g 
+        JOIN user_groups ug ON g.group_id = ug.group_id 
+        WHERE ug.user_id = %s
+        """
+        mycursor.execute(query, (user_id,))
+        groups = mycursor.fetchall()
+        
+        return render_template('group_list.html', groups=groups)
+    except Exception as e:
+        print("Error fetching groups:", str(e))
+        return "An error occurred loading the groups", 500
 
-    # mycursor.execute("""
-    #     SELECT * FROM Invoice
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    meta_data = mycursor.fetchall()
-
-    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
-    user_id_list = mycursor.fetchall()
-
-    user_name_list = []
-    for i in user_id_list:
-        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
-        user_name = mycursor.fetchall()
-        user_name_list.append(user_name[0][0])
-
-    headers = ("", "Item name", "Quantity", "Price")
-    
-    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():

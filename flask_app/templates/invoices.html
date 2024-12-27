@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoices</title>
@@ -11,6 +12,58 @@
             padding: 0;
             background-color: #f4f4f9;
             color: #333;
+        }
+        .page-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0 250px; /* Space at both edges of the container */
+            gap: 10px; /* Controls the space between the table and User Summary */
+        }
+
+        .main-content {
+            flex: 1; /* Main content takes up the remaining space */
+            max-width: 900px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 30px;
+        }
+
+        .user-summary-container {
+            width: 10px; /* Fixed width for User Summary box */
+            flex-shrink: 0; /* Prevent User Summary box from resizing */
+        }
+        .user-summary-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            width: 190px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .user-summary-box h3 {
+            margin: 0 0 1px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .total-summary {
+            margin-top: 15px;
+        }
+
+        .total-row {
+            justify-content: space-between;
+            margin-top: 5px;
+            text-align: center; 
         }
 
         h1 {
@@ -80,44 +133,60 @@
 </head>
 <body>
     <h1>Invoices for Group {{ group_id }}</h1>
-    <div class="container">
-        {% if invoices %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Invoice ID</th>
-                        <th>Order Number</th>
-                        <th>Date</th>
-                        <th>Total</th>
-                        <th>Tax</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for invoice in invoices %}
+    <div class="page-container">
+        <!-- Main content -->
+        <div class="main-content">
+            {% if invoices %}
+                <table>
+                    <thead>
                         <tr>
-                            <td>{{ invoice['InvoiceID'] }}</td>
-                            <td>{{ invoice['OrderNumber'] }}</td>
-                            <td>{{ invoice['Date'] }}</td>
-                            <td>${{ "%.2f"|format(invoice['Total']) }}</td>
-                            <td>${{ "%.2f"|format(invoice['Tax']) }}</td>
-                            <td>
-                                <!-- Bill Summary button -->
-                                <form action="{{ url_for('invoice_details', invoice_id=invoice['InvoiceID']) }}" method="GET">
-                                    <button class="btn" type="submit">Bill Summary</button>
-                                </form>
-                                <!-- Cancel button -->
-                                <form action="{{ url_for('split_summary', invoice_id=invoice['InvoiceID']) }}" method="GET">
-                                    <button class="btn btn-danger" type="submit">Split Summary</button>
-                                </form>
-                            </td>
+                            <th>Invoice ID</th>
+                            <th>Order Number</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Tax</th>
+                            <th>Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="no-invoices">No invoices found for this group.</p>
-        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                            <tr>
+                                <td>{{ invoice['InvoiceID'] }}</td>
+                                <td>{{ invoice['OrderNumber'] }}</td>
+                                <td>{{ invoice['Date'] }}</td>
+                                <td>${{ "%.2f"|format(invoice['Total']) }}</td>
+                                <td>${{ "%.2f"|format(invoice['Tax']) }}</td>
+                                <td>
+                                    <form action="{{ url_for('invoice_details', invoice_id=invoice['InvoiceID']) }}" method="GET">
+                                        <button class="btn" type="submit">Bill Summary</button>
+                                    </form>
+                                    <form action="{{ url_for('split_summary', invoice_id=invoice['InvoiceID']) }}" method="GET">
+                                    <button class="btn btn-danger" type="submit">Split Summary</button>
+                                    </form>
+                            </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="no-invoices">No invoices found for this group.</p>
+            {% endif %}
+        </div>
+
+        <!-- User Summary Box -->
+        <div class="user-summary-container">
+            <div class="user-summary-box">
+                <h3>Share the code to your friends to join this group</h3>
+                <div id="userSummaryContent">
+                    <!-- User summaries will be dynamically inserted here -->
+                </div>
+                <div class="total-summary">
+                    <div class="total-row">
+                        <span style="text-align: center;">{{ group_code }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

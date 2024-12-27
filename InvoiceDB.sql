@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Dec 02, 2024 at 05:40 AM
+-- Generation Time: Dec 27, 2024 at 11:40 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.0.28
 
@@ -29,8 +29,17 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `groups` (
   `group_id` int(11) NOT NULL,
-  `group_name` varchar(100) NOT NULL
+  `group_name` varchar(100) NOT NULL,
+  `code` varchar(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `groups`
+--
+
+INSERT INTO `groups` (`group_id`, `group_name`, `code`) VALUES
+(1, 'test1', 'C784RTE'),
+(2, 'test2', '9IC67TJ');
 
 -- --------------------------------------------------------
 
@@ -43,18 +52,19 @@ CREATE TABLE `Invoice` (
   `OrderNumber` varchar(20) NOT NULL,
   `Date` date NOT NULL,
   `Total` decimal(10,2) NOT NULL,
-  `Tax` decimal(10,2) DEFAULT 0.00
+  `Tax` decimal(10,2) DEFAULT 0.00,
+  `user_group_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `Invoice`
 --
 
-INSERT INTO `Invoice` (`InvoiceID`, `OrderNumber`, `Date`, `Total`, `Tax`) VALUES
-(126, '451', '2024-11-19', 123.00, 12.00),
-(128, '4', '2024-11-19', 123.00, 12.00),
-(129, '14', '2024-11-19', 123.00, 12.00),
-(140, '2000127-21418074', '2024-11-19', 190.85, 2.44);
+INSERT INTO `Invoice` (`InvoiceID`, `OrderNumber`, `Date`, `Total`, `Tax`, `user_group_id`) VALUES
+(126, '451', '2024-11-19', 123.00, 12.00, 1),
+(128, '4', '2024-11-19', 123.00, 12.00, 1),
+(129, '14', '2024-11-19', 123.00, 12.00, 1),
+(140, '2000127-21418074', '2024-11-19', 190.85, 2.44, 1);
 
 -- --------------------------------------------------------
 
@@ -120,8 +130,24 @@ INSERT INTO `InvoiceDetails` (`DetailID`, `InvoiceID`, `ItemName`, `Quantity`, `
 
 CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL
+  `username` varchar(50) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `username`, `email`, `password`) VALUES
+(1, 'asd', 'asd@asd.com', 'asd'),
+(2, 'asdasdasa', 'asda@asda.com', 'asdasdasd'),
+(3, 'asdaasda', 'asdasd@asdaad.com', 'Asdasdasd'),
+(4, 'test', 'testDoc@gmail.com', 'asdasdasd'),
+(5, 'asdasd', 'asd@asd.gmaill.com', 'asdasdsd'),
+(6, 'testa', 'asd@gmail.com', 'asd'),
+(7, 'testtest', 'test@test.com', 'asd'),
+(8, 'avi', 'avi@test.com', 'avi');
 
 -- --------------------------------------------------------
 
@@ -135,6 +161,16 @@ CREATE TABLE `user_groups` (
   `group_id` int(11) NOT NULL,
   `joined_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_groups`
+--
+
+INSERT INTO `user_groups` (`user_group_id`, `user_id`, `group_id`, `joined_at`) VALUES
+(1, 1, 1, '2024-12-13 00:54:26'),
+(2, 3, 1, '2024-12-13 00:54:26'),
+(3, 1, 2, '2024-12-13 00:54:48'),
+(4, 2, 2, '2024-12-13 00:54:48');
 
 -- --------------------------------------------------------
 
@@ -151,6 +187,16 @@ CREATE TABLE `user_item_splits` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `user_item_splits`
+--
+
+INSERT INTO `user_item_splits` (`splitID`, `DetailID`, `user_id`, `split_amount`, `created_at`) VALUES
+(5, 37, 1, 1.71, '2024-12-27 03:17:56'),
+(6, 37, 2, 1.71, '2024-12-27 03:17:56'),
+(7, 39, 1, 1.96, '2024-12-27 03:17:56'),
+(8, 41, 2, 2.12, '2024-12-27 03:17:56');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -165,7 +211,8 @@ ALTER TABLE `groups`
 --
 ALTER TABLE `Invoice`
   ADD PRIMARY KEY (`InvoiceID`),
-  ADD UNIQUE KEY `OrderNumber` (`OrderNumber`);
+  ADD UNIQUE KEY `OrderNumber` (`OrderNumber`),
+  ADD KEY `user_group_id_FK` (`user_group_id`);
 
 --
 -- Indexes for table `InvoiceDetails`
@@ -205,7 +252,7 @@ ALTER TABLE `user_item_splits`
 -- AUTO_INCREMENT for table `groups`
 --
 ALTER TABLE `groups`
-  MODIFY `group_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `group_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `Invoice`
@@ -223,23 +270,29 @@ ALTER TABLE `InvoiceDetails`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `user_groups`
 --
 ALTER TABLE `user_groups`
-  MODIFY `user_group_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `user_group_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `user_item_splits`
 --
 ALTER TABLE `user_item_splits`
-  MODIFY `splitID` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `splitID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `Invoice`
+--
+ALTER TABLE `Invoice`
+  ADD CONSTRAINT `user_group_id_FK` FOREIGN KEY (`user_group_id`) REFERENCES `user_groups` (`user_group_id`);
 
 --
 -- Constraints for table `InvoiceDetails`

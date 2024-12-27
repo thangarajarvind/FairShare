@@ -4,7 +4,10 @@ import mysql.connector
 import re
 from flaskext.mysql import MySQL
 from flask_session import Session
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 app = Flask(__name__)
 
 mydb = mysql.connector.connect(
@@ -18,6 +21,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config.from_object(__name__)
 Session(app)
 mycursor = mydb.cursor()
+
 
 @app.route('/register', methods =['GET', 'POST'])
 def register():
@@ -72,14 +76,69 @@ def register():
         
     print(f"Final message: {msg}") 
     return render_template('register.html', msg = msg)
+<<<<<<< Updated upstream
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    msg = ''
-    if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
-        username = request.form['username']
-        password = request.form['password']
+=======
+
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     # For GET requests, just render the template
+#     if request.method == 'GET':
+#         return render_template('login.html', msg='')
+    
+#     # Only process login for actual POST requests with form data
+#     msg = ''
+#     if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
+#         username = request.form['username']
+#         password = request.form['password']
         
+#         try:
+#             check_cursor = mydb.cursor()
+#             check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+#             username_present = check_cursor.fetchone()
+#             check_cursor.close()
+            
+#             if username_present:
+#                 check_cursor = mydb.cursor()
+#                 check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
+#                 pass_check = check_cursor.fetchone()
+#                 check_cursor.close()
+                
+#                 if pass_check:
+#                     return redirect(url_for('index'))
+#                 else:
+#                     msg = "Incorrect password!"
+#             else:
+#                 msg = "Username not found!"
+                
+#         except mysql.connector.Error as err:
+#             msg = 'Database error occurred!'
+#             mydb.rollback()
+    
+#     return render_template('login.html', msg=msg)
+
+#new
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # For GET requests, render the login page
+    if request.method == 'GET':
+        return render_template('login.html', msg='')
+
+    # For POST requests, process login data
+>>>>>>> Stashed changes
+    msg = ''
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if not username or not password:
+            msg = "Username and password are required!"
+            return render_template('login.html', msg=msg)
+
         try:
+<<<<<<< Updated upstream
             check_cursor = mydb.cursor()
             check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
             username_present = check_cursor.fetchone()
@@ -96,14 +155,33 @@ def login():
                     return redirect(url_for('index'))
                 else:
                     msg = "Incorrect password!"
+=======
+            # Use a single query to validate both username and password
+            query = "SELECT user_id, username FROM users WHERE username = %s AND password = %s"
+            mycursor = mydb.cursor(dictionary=True)  # Use dictionary cursor for better readability
+            mycursor.execute(query, (username, password))
+            user = mycursor.fetchone()
+            mycursor.close()
+
+            if user:
+                # Save user session and redirect to the index page
+                session['user_id'] = user['user_id']
+                session['username'] = user['username']
+                return redirect(url_for('index'))
+>>>>>>> Stashed changes
             else:
-                msg = "Username not found!"
-                
+                msg = "Invalid username or password!"
+
         except mysql.connector.Error as err:
-            msg = 'Database error occurred!'
-            mydb.rollback()
-    
+            print("Database error:", err)
+            msg = "An error occurred. Please try again later."
+
     return render_template('login.html', msg=msg)
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
 @app.route('/')
 def index():
     user_id = session.get('user_id')
@@ -203,3 +281,156 @@ def bill_summary():
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the summary", 500
+<<<<<<< Updated upstream
+=======
+    
+@app.route('/group-list')
+def group_list():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    user_id = session['user_id']
+
+    try:
+        # Fetch group details where the user is associated
+        query = """
+        SELECT g.group_id, g.group_name 
+        FROM groups g 
+        JOIN user_groups ug ON g.group_id = ug.group_id 
+        WHERE ug.user_id = %s
+        """
+        mycursor.execute(query, (user_id,))
+        groups = mycursor.fetchall()
+
+        return render_template('group_list.html', groups=groups)
+    except Exception as e:
+        print("Error in group_list:", str(e))
+        print("Traceback:", traceback.format_exc())
+        return "An error occurred loading the group list", 500
+
+# @app.route('/group/<int:group_id>/invoices')
+# def group_invoices(group_id):
+#     if 'user_id' not in session:
+#         return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+#     try:
+#         # Fetch invoices related to the selected group_id
+#         query = """
+#         SELECT InvoiceID, OrderNumber, Date, Total, Tax
+#         FROM Invoice
+#         WHERE InvoiceID IN (
+#             SELECT InvoiceID 
+#             FROM user_groups
+#             WHERE group_id = %s
+#         )
+#         """
+#         mycursor = mydb.cursor(dictionary=True)
+#         mycursor.execute(query, (group_id,))
+#         invoices = mycursor.fetchall()
+#         mycursor.close()
+
+#         return render_template('invoices.html', invoices=invoices, group_id=group_id)
+#     except Exception as e:
+#         print("Error in group_invoices:", str(e))
+#         print("Traceback:", traceback.format_exc())
+#         return "An error occurred loading the invoices", 500
+
+#new
+
+@app.route('/group/<int:group_id>/invoices')
+def group_invoices(group_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    user_id = session['user_id']
+
+    try:
+        # Step 1: Fetch group details to ensure the group_id exists
+        mycursor = mydb.cursor(dictionary=True)
+        mycursor.execute("SELECT * FROM groups WHERE group_id = %s", (group_id,))
+        group = mycursor.fetchone()
+
+        if not group:
+            return "Group not found", 404  # If the group does not exist in the groups table
+
+        # Step 2: Fetch the user_group_id based on user_id and group_id
+        mycursor.execute("""
+            SELECT user_group_id
+            FROM user_groups
+            WHERE user_id = %s AND group_id = %s
+        """, (user_id, group_id))
+        user_group = mycursor.fetchone()
+
+        if not user_group:
+            return "User is not associated with this group", 403  # Unauthorized if user is not part of the group
+
+        user_group_id = user_group['user_group_id']
+
+        # Step 3: Fetch invoices related to the user_group_id
+        mycursor.execute("""
+            SELECT InvoiceID, OrderNumber, Date, Total, Tax
+            FROM Invoice
+            WHERE user_group_id = %s
+        """, (user_group_id,))
+        invoices = mycursor.fetchall()
+
+        mycursor.close()
+
+        return render_template('invoices.html', invoices=invoices, group_id=group_id)
+    
+    except Exception as e:
+        print("Error in group_invoices:", str(e))
+        print("Traceback:", traceback.format_exc())
+        return "An error occurred loading the invoices", 500
+
+
+# @app.route('/invoice/<int:invoice_id>/details')
+# def invoice_details(invoice_id):
+#     if 'user_id' not in session:
+#         return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+#     try:
+#         # Fetch details from InvoiceDetails table for the given InvoiceID
+#         query = """
+#         SELECT DetailID, ItemName, Quantity, Price 
+#         FROM InvoiceDetails 
+#         WHERE InvoiceID = %s
+#         """
+#         mycursor = mydb.cursor(dictionary=True)
+#         mycursor.execute(query, (invoice_id,))
+#         details = mycursor.fetchall()
+#         mycursor.close()
+
+#         return render_template('invoice_details.html', details=details, invoice_id=invoice_id)
+#     except Exception as e:
+#         print("Error in invoice_details:", str(e))
+#         print("Traceback:", traceback.format_exc())
+#         return "An error occurred loading the invoice details", 500
+
+#new
+
+@app.route('/invoice-details/<int:invoice_id>', methods=['GET'])
+def invoice_details(invoice_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    try:
+        # Fetch invoice details related to the selected InvoiceID
+        query = """
+        SELECT ItemName, Quantity, Price
+        FROM InvoiceDetails
+        WHERE InvoiceID = %s
+        """
+        mycursor = mydb.cursor(dictionary=True)
+        mycursor.execute(query, (invoice_id,))
+        invoice_details = mycursor.fetchall()
+        mycursor.close()
+
+        # Render the details on a new page
+        return render_template('invoice_details.html', invoice_details=invoice_details, invoice_id=invoice_id)
+    except Exception as e:
+        print("Error fetching invoice details:", str(e))
+        return "An error occurred while fetching invoice details.", 500
+
+
+>>>>>>> Stashed changes

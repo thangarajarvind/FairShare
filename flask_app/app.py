@@ -74,58 +74,10 @@ def register():
         
     print(f"Final message: {msg}") 
     return render_template('register.html', msg = msg)
-<<<<<<< Updated upstream
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-=======
 
-# @app.route('/login', methods=['GET', 'POST'])
-# def login():
-#     # For GET requests, just render the template
-#     if request.method == 'GET':
-#         return render_template('login.html', msg='')
-    
-#     # Only process login for actual POST requests with form data
-#     msg = ''
-#     if request.method == 'POST' and request.form.get('username') and request.form.get('password'):
-#         username = request.form['username']
-#         password = request.form['password']
-        
-#         try:
-#             check_cursor = mydb.cursor()
-#             check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
-#             username_present = check_cursor.fetchone()
-#             check_cursor.close()
-            
-#             if username_present:
-#                 check_cursor = mydb.cursor()
-#                 check_cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
-#                 pass_check = check_cursor.fetchone()
-#                 check_cursor.close()
-                
-#                 if pass_check:
-#                     return redirect(url_for('index'))
-#                 else:
-#                     msg = "Incorrect password!"
-#             else:
-#                 msg = "Username not found!"
-                
-#         except mysql.connector.Error as err:
-#             msg = 'Database error occurred!'
-#             mydb.rollback()
-    
-#     return render_template('login.html', msg=msg)
-
-#new
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # For GET requests, render the login page
-    if request.method == 'GET':
-        return render_template('login.html', msg='')
-
-    # For POST requests, process login data
->>>>>>> Stashed changes
     msg = ''
     if request.method == 'POST':
         username = request.form.get('username')
@@ -136,7 +88,6 @@ def login():
             return render_template('login.html', msg=msg)
 
         try:
-<<<<<<< Updated upstream
             check_cursor = mydb.cursor()
             check_cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
             username_present = check_cursor.fetchone()
@@ -153,20 +104,6 @@ def login():
                     return redirect(url_for('index'))
                 else:
                     msg = "Incorrect password!"
-=======
-            # Use a single query to validate both username and password
-            query = "SELECT user_id, username FROM users WHERE username = %s AND password = %s"
-            mycursor = mydb.cursor(dictionary=True)  # Use dictionary cursor for better readability
-            mycursor.execute(query, (username, password))
-            user = mycursor.fetchone()
-            mycursor.close()
-
-            if user:
-                # Save user session and redirect to the index page
-                session['user_id'] = user['user_id']
-                session['username'] = user['username']
-                return redirect(url_for('index'))
->>>>>>> Stashed changes
             else:
                 msg = "Invalid username or password!"
 
@@ -175,11 +112,8 @@ def login():
             msg = "An error occurred. Please try again later."
 
     return render_template('login.html', msg=msg)
-<<<<<<< Updated upstream
-=======
 
 
->>>>>>> Stashed changes
 @app.route('/')
 def index():
     user_id = session.get('user_id')
@@ -262,6 +196,8 @@ def receive_api_data():
         }), 500
 
 app.secret_key = 'FairShare'
+
+
 @app.route('/bill-summary')
 def bill_summary():
     user_id = session.get('user_id')
@@ -288,8 +224,6 @@ def bill_summary():
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the summary", 500
-<<<<<<< Updated upstream
-=======
     
 @app.route('/group-list')
 def group_list():
@@ -315,34 +249,6 @@ def group_list():
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the group list", 500
 
-# @app.route('/group/<int:group_id>/invoices')
-# def group_invoices(group_id):
-#     if 'user_id' not in session:
-#         return redirect(url_for('login'))  # Redirect to login if not authenticated
-
-#     try:
-#         # Fetch invoices related to the selected group_id
-#         query = """
-#         SELECT InvoiceID, OrderNumber, Date, Total, Tax
-#         FROM Invoice
-#         WHERE InvoiceID IN (
-#             SELECT InvoiceID 
-#             FROM user_groups
-#             WHERE group_id = %s
-#         )
-#         """
-#         mycursor = mydb.cursor(dictionary=True)
-#         mycursor.execute(query, (group_id,))
-#         invoices = mycursor.fetchall()
-#         mycursor.close()
-
-#         return render_template('invoices.html', invoices=invoices, group_id=group_id)
-#     except Exception as e:
-#         print("Error in group_invoices:", str(e))
-#         print("Traceback:", traceback.format_exc())
-#         return "An error occurred loading the invoices", 500
-
-#new
 
 @app.route('/group/<int:group_id>/invoices')
 def group_invoices(group_id):
@@ -439,5 +345,75 @@ def invoice_details(invoice_id):
         print("Error fetching invoice details:", str(e))
         return "An error occurred while fetching invoice details.", 500
 
+@app.route('/confirm-splits', methods=['POST'])
+def confirm_splits():
+    try:
+        # Get bill data from session
+        bill_data = session.get('bill_data', {})
+        if not bill_data:
+            return jsonify({
+                'success': False,
+                'error': 'No bill data found in session'
+            }), 400
 
->>>>>>> Stashed changes
+        cursor = mydb.cursor()
+        
+        try:
+            # Start transaction
+            mydb.start_transaction()
+            
+            # Process each item and its splits
+            for item in bill_data['items']:
+                detail_id = item['detailID']
+                
+                # First delete any existing splits for this item
+                cursor.execute(
+                    'DELETE FROM user_item_splits WHERE DetailID = %s',
+                    (detail_id,)
+                )
+                
+                # Insert new splits
+                for split in item['splits']:
+                    username = split['userId']
+                    mycursor.execute("SELECT user_id FROM users where username='"+username+"'")
+                    user_id = mycursor.fetchall()
+                    user = user_id[0][0]
+                    cursor.execute('''
+                        INSERT INTO user_item_splits 
+                        (DetailID, user_id, split_amount)
+                        VALUES (%s, %s, %s)
+                    ''', (
+                        detail_id,
+                        str(user),
+                        Decimal(str(split['splitAmount']))
+                    ))
+            
+            # Commit transaction
+            mydb.commit()
+            
+            # Clear the bill data from session
+            session.pop('bill_data', None)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Splits confirmed successfully'
+            })
+            
+        except mysql.connector.Error as err:
+            # Rollback in case of error
+            mydb.rollback()
+            print(f"Database error: {err}")
+            return jsonify({
+                'success': False,
+                'error': f"Database error: {str(err)}"
+            }), 500
+            
+        finally:
+            cursor.close()
+            
+    except Exception as e:
+        print(f"Error in confirm_splits: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

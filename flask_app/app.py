@@ -278,7 +278,6 @@ def group_list():
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the group list", 500
 
-
 @app.route('/group/<int:group_id>/invoices')
 def group_invoices(group_id):
     if 'user_id' not in session:
@@ -308,24 +307,23 @@ def group_invoices(group_id):
         if not user_group:
             return "User is not associated with this group", 403  # Unauthorized if user is not part of the group
 
-        user_group_id = user_group['user_group_id']
-
-        # Step 3: Fetch invoices related to the user_group_id
+        # Step 3: Fetch all invoices related to the group_id
         mycursor.execute("""
             SELECT InvoiceID, OrderNumber, Date, Total, Tax
             FROM Invoice
-            WHERE user_group_id = %s
-        """, (user_group_id,))
+            WHERE group_id = %s
+        """, (group_id,))
         invoices = mycursor.fetchall()
 
         mycursor.close()
 
-        return render_template('invoices.html', invoices=invoices, group_id=group_id, group_code = group_code)
+        return render_template('invoices.html', invoices=invoices, group_id=group_id, group_code=group_code)
     
     except Exception as e:
         print("Error in group_invoices:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the invoices", 500
+
 
 
 # @app.route('/invoice/<int:invoice_id>/details')
@@ -494,33 +492,114 @@ def confirm_splits():
 #         print("Error in split-summary:", str(e))
 #         return "An error occurred", 500
 
+#new 
+
 @app.route('/split-summary/<int:invoice_id>')
 def split_summary(invoice_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     try:
-        # Query to fetch item splits and related details
         query = """
-        SELECT id.ItemName, id.Quantity, id.Price, u.username, us.split_amount, us.created_at 
+        SELECT 
+            id.ItemName, 
+            COUNT(us.user_id) AS shares,  -- Number of shares
+            id.Price, 
+            u.username, 
+            SUM(us.split_amount) AS total_share,  -- Sum of user's share amount
+            MAX(us.created_at) AS last_updated
         FROM user_item_splits us
         JOIN InvoiceDetails id ON id.DetailID = us.DetailID
         JOIN users u ON u.user_id = us.user_id
         WHERE id.InvoiceID = %s
+        GROUP BY id.ItemName, id.Price, u.username
+        ORDER BY u.username, id.ItemName
         """
         mycursor.execute(query, (invoice_id,))
         data = mycursor.fetchall()
 
-        # Group data by username for display
+        print("Query Result:", data)  # Debugging: Print fetched data
+
+        # Group data by username for structured display
         user_groups = {}
         for row in data:
-            username = row[3]  # 'username' is the 4th column (index 3) in the tuple
+            username = row[3]  # 'username'
             if username not in user_groups:
                 user_groups[username] = {'items': [], 'total_share': Decimal(0)}
             user_groups[username]['items'].append(row)
-            user_groups[username]['total_share'] += row[4]  # 'split_amount' is the 5th column (index 4)
+            user_groups[username]['total_share'] += row[4]  # 'total_share'
 
         return render_template('split_summary.html', user_groups=user_groups)
     except Exception as e:
-        print("Error in split_summary:", str(e))
+        print(f"Error in split_summary: {str(e)}")
         return "An error occurred loading the split summary", 500
+
+
+@app.route('/join_group', methods=['GET', 'POST'])
+def join_group():
+    # Check if the user is authenticated (user_id in session)
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    # Get the user_id from the session
+    user_id = session['user_id']
+
+    if request.method == 'POST':
+        group_code = request.form['group_code']
+
+        # Check if the group code exists in the groups table with case-sensitivity
+        mycursor.execute("SELECT * FROM `groups` WHERE `code` = BINARY %s", (group_code,))
+        group = mycursor.fetchone()
+
+        if not group:
+            # If the group code is invalid
+            return render_template('join_group.html', error_message="Invalid group code!")
+        
+        group_id = group[0]  # Assuming group_id is the first column in the result
+        
+        # Check if the user is already a member of the group
+        mycursor.execute("SELECT * FROM `user_groups` WHERE `user_id` = %s AND `group_id` = %s", (user_id, group_id))
+        user_group = mycursor.fetchone()
+        
+        if user_group:
+            # If the user is already in the group
+            return render_template('join_group.html', error_message="You are already a member of this group!")
+        
+        # Add the user to the group in the user_groups table
+        mycursor.execute("INSERT INTO `user_groups` (`user_id`, `group_id`) VALUES (%s, %s)", (user_id, group_id))
+        mydb.commit()
+
+        # Redirect to the group's invoices page
+        return redirect(url_for('group_invoices', group_id=group_id))
+
+    return render_template('join_group.html')
+
+
+# @app.route('/group_invoices/<int:group_id>')
+# def group_invoices(group_id):
+#     # Logic for displaying group invoices, replace with actual logic
+#     return f"Displaying invoices for group ID: {group_id}"
+
+@app.route('/group_invoices/<int:group_id>')
+def group_invoices_page(group_id):
+    # Your existing logic here
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    user_id = session['user_id']
+
+    mycursor.execute("SELECT user_group_id FROM `user_groups` WHERE `user_id` = %s AND `group_id` = %s", (user_id, group_id))
+    user_group = mycursor.fetchone()
+
+    if not user_group:
+        return redirect(url_for('join_group'))
+
+    user_group_id = user_group[0]
+
+    mycursor.execute("SELECT * FROM `Invoice` WHERE `user_group_id` = %s", (user_group_id,))
+    invoices = mycursor.fetchall()
+
+    if not invoices:
+        return render_template('group_invoices.html', group_id=group_id, message="No invoices found for this group.")
+
+    return render_template('group_invoices.html', group_id=group_id, invoices=invoices)

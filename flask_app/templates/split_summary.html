@@ -6,62 +6,43 @@
     <title>Split Summary</title>
     <style>
         body {
-            font-family: 'Roboto', Arial, sans-serif;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
             margin: 0;
             padding: 0;
-            background: linear-gradient(to right, #e8eaf6, #f4f4f9);
-            color: #333;
         }
 
         h1 {
             text-align: center;
-            margin-top: 20px;
-            font-size: 2rem;
-            color: #4A4A4A;
+            margin: 20px;
+            color: #444;
         }
 
         .container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
             background: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-        }
-
-        h3 {
-            margin-bottom: 10px;
-            color: #555;
-            font-size: 1.5rem;
-            border-bottom: 2px solid #f4f4f9;
-            padding-bottom: 5px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            font-size: 0.9rem;
         }
 
         table th, table td {
-            border: 1px solid #ddd;
-            padding: 12px;
+            padding: 10px;
             text-align: left;
+            border: 1px solid #ddd;
         }
 
         table th {
-            background-color: #eef2f7;
-            color: #333;
-            font-weight: 600;
-        }
-
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        table tr:hover {
-            background-color: #f1f1f1;
+            background-color: #f4f4f9;
+            font-weight: bold;
         }
 
         table td {
@@ -70,44 +51,12 @@
 
         .no-data {
             text-align: center;
-            font-size: 1.1rem;
             color: #777;
-            margin-top: 20px;
+            font-size: 1.1em;
         }
 
-        .btn {
-            display: inline-block;
-            padding: 10px 15px;
-            margin: 10px auto;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            background-color: #45a049;
-        }
-
-        .btn-danger {
-            background-color: #f44336;
-        }
-
-        .btn-danger:hover {
-            background-color: #da190b;
-        }
-
-        .center-buttons {
-            text-align: center;
-        }
-
-        .total-row td {
+        .total-row {
             font-weight: bold;
-            color: #444;
-            background-color: #f4f4f9;
         }
     </style>
 </head>
@@ -129,10 +78,10 @@
                     <tbody>
                         {% for item in group['items'] %}
                             <tr>
-                                <td>{{ item[0] }}</td>  <!-- ItemName -->
-                                <td>{{ item[1] }}</td>  <!-- Quantity -->
-                                <td>${{ "%.2f"|format(item[1] * item[2]) }}</td>  <!-- Original Price -->
-                                <td>${{ "%.2f"|format(item[4]) }}</td>  <!-- Your Share (split_amount) -->
+                                <td>{{ item[0] }}</td> <!-- Item Name -->
+                                <td>{{ item[1] }}</td> <!-- Number of Shares -->
+                                <td>${{ "%.2f"|format(item[2]) }}</td> <!-- Original Price -->
+                                <td>${{ "%.2f"|format(item[4]) }}</td> <!-- Total Share -->
                             </tr>
                         {% endfor %}
                         <tr class="total-row">

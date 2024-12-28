@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Invoices</title>
+</head>
+<body>
+    <h2>Invoices for Group ID: {{ group_id }}</h2>
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% else %}
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Order Number</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Tax</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ invoice[0] }}</td>
+                        <td>{{ invoice[1] }}</td>
+                        <td>{{ invoice[2] }}</td>
+                        <td>{{ invoice[3] }}</td>
+                        <td>{{ invoice[4] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</body>
+</html>

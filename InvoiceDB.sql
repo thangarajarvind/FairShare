@@ -53,14 +53,14 @@ CREATE TABLE `Invoice` (
   `Date` date NOT NULL,
   `Total` decimal(10,2) NOT NULL,
   `Tax` decimal(10,2) DEFAULT 0.00,
-  `user_group_id` int(11) NOT NULL
+  `group_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `Invoice`
 --
 
-INSERT INTO `Invoice` (`InvoiceID`, `OrderNumber`, `Date`, `Total`, `Tax`, `user_group_id`) VALUES
+INSERT INTO `Invoice` (`InvoiceID`, `OrderNumber`, `Date`, `Total`, `Tax`, `group_id`) VALUES
 (126, '451', '2024-11-19', 123.00, 12.00, 1),
 (128, '4', '2024-11-19', 123.00, 12.00, 1),
 (129, '14', '2024-11-19', 123.00, 12.00, 1),
@@ -212,7 +212,7 @@ ALTER TABLE `groups`
 ALTER TABLE `Invoice`
   ADD PRIMARY KEY (`InvoiceID`),
   ADD UNIQUE KEY `OrderNumber` (`OrderNumber`),
-  ADD KEY `user_group_id_FK` (`user_group_id`);
+  ADD KEY `group_id_FK` (`group_id`);
 
 --
 -- Indexes for table `InvoiceDetails`
@@ -292,7 +292,7 @@ ALTER TABLE `user_item_splits`
 -- Constraints for table `Invoice`
 --
 ALTER TABLE `Invoice`
-  ADD CONSTRAINT `user_group_id_FK` FOREIGN KEY (`user_group_id`) REFERENCES `user_groups` (`user_group_id`);
+  ADD CONSTRAINT `group_id_FK` FOREIGN KEY (`group_id`) REFERENCES `groups` (`group_id`);
 
 --
 -- Constraints for table `InvoiceDetails`

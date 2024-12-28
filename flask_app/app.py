@@ -5,6 +5,8 @@ import re
 from flaskext.mysql import MySQL
 from flask_session import Session
 from decimal import *
+import random
+import string
 
 app = Flask(__name__)
 
@@ -573,6 +575,43 @@ def join_group():
         return redirect(url_for('group_invoices', group_id=group_id))
 
     return render_template('join_group.html')
+
+@app.route('/create_group', methods=['GET', 'POST'])
+def create_group():
+    # Check if the user is authenticated (user_id in session)
+    if 'user_id' not in session:
+        return redirect(url_for('login'))  # Redirect to login if not authenticated
+
+    # Get the user_id from the session
+    user_id = session['user_id']
+
+    if request.method == 'POST':
+        group_name = request.form['group_name']
+
+        mycursor.execute("SELECT * FROM `groups` WHERE `group_name` = %s", (group_name,))
+        group = mycursor.fetchone()
+        
+        if(group is not None):
+            return render_template('create_group.html', error_message="Group name already exists!")
+        
+        characters = string.ascii_letters + string.digits
+        group_code = ''.join(random.choice(characters.upper()) for _ in range(6))
+
+        mycursor.execute("INSERT INTO `groups` (`group_name`, `code`) VALUES (%s, %s)", (group_name, group_code))
+
+        mycursor.execute("SELECT * FROM `groups` WHERE `group_name` = %s", (group_name,))
+        group = mycursor.fetchone()
+
+        group_id = group[0]  # Assuming group_id is the first column in the result
+
+        mycursor.execute("INSERT INTO `user_groups` (`user_id`, `group_id`) VALUES (%s, %s)", (user_id, group_id))
+
+        mydb.commit()
+
+        # Redirect to the group's invoices page
+        return redirect(url_for('group_invoices', group_id=group_id))
+
+    return render_template('create_group.html')
 
 
 # @app.route('/group_invoices/<int:group_id>')

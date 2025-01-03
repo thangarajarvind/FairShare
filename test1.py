@@ -2,13 +2,14 @@ import pandas as pd
 from nltk.tokenize import word_tokenize
 from pypdf import PdfReader
 import re
+from flask import redirect, url_for
 import mysql.connector
 from datetime import datetime
 
 # Initialize reader and datasets
 reader = PdfReader("uploads/reciept.pdf")
 product_data = pd.DataFrame(columns=["Product_Name", "Qnt", "Price"])
-totals_data = {"Subtotal": None, "Savings": None, "Tax": None, "Total": None}
+totals_data = {"Total": None, "Savings": None, "Tax": None, "Total": None}
 meta_data = {"Date": None, "Order_Number": None}
 
 # Helper function to extract product details
@@ -45,9 +46,9 @@ for j, page in enumerate(reader.pages):
             continue  # Skip headers and irrelevant lines
 
         # Detect and stop product processing when totals start
-        if "Subtotal" in line:
+        if "total" in line:
             processing_products = False
-            totals_data["Subtotal"] = line.split("$")[-1].strip()
+            totals_data["total"] = line.split("$")[-1].strip()
             continue
             
         if "Order#" in line:
@@ -93,16 +94,10 @@ if buffer:
         ignore_index=True,
     )
 
-# Ensure that totals and meta data are correct
-print("\nTotals Data:")
-print(totals_data)
-print("\nMeta Data:")
-print(meta_data)
-
 receipt_date = meta_data["Date"]
 order_number = meta_data["Order_Number"]
 tax = totals_data["Tax"]
-sub_total = totals_data["Subtotal"]
+Total = totals_data["Total"]
 
 mydb = mysql.connector.connect(
   host="localhost",
@@ -125,7 +120,7 @@ existing_count = mycursor.fetchone()[0]
 
 if existing_count == 0:  # If the OrderNumber doesn't exist, insert it
     sql = "INSERT INTO Invoice (OrderNumber, Date, Total, Tax) VALUES (%s, %s, %s, %s)"
-    val = (order_number, receipt_date, sub_total, tax)
+    val = (order_number, receipt_date, Total, tax)
     mycursor.execute(sql, val)
 
     # Get the InvoiceID after insertion
@@ -154,11 +149,11 @@ for i in range(len(product_data.index)):
 
     sql = "INSERT INTO InvoiceDetails (InvoiceID, ItemName, Quantity, Price) VALUES (%s, %s, %s, %s)"
     val = (invoice_id, item_name, qnt, price)
-    print(invoice_id, item_name, qnt, price)
+   
 
     mycursor.execute(sql, val)
+print(invoice_id)
 
 mydb.commit()
 
-print(mycursor.rowcount, "record inserted.")
-print(product_data)
+

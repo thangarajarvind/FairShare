@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, url_for
+from flask import Flask, render_template, request, jsonify, session, url_for, redirect
 import traceback
 import mysql.connector
 import re
@@ -75,20 +75,21 @@ def register():
     print(f"Final message: {msg}")  # Debug print
     return render_template('register.html', msg = msg)
 
-
 @app.route('/')
-def index():
-    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID='140'")
+def invoice_details():
+   
+    invoice_id = request.args.get('invoice_id', type=int) 
+
+    # Execute the query using the dynamic invoice_id
+    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
-    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
+    mycursor.execute("SELECT * FROM Invoice where InvoiceID = %s", (invoice_id,))
     meta_data = mycursor.fetchall()
 
-    headers = ("","Item name", "Quantity", "Price")
+    headers = ("", "Item name", "Quantity", "Price")
 
-    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
-
-
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
 @app.route('/upload-pdf', methods=['GET', 'POST'])
 def upload_pdf():
     if request.method == 'POST':
@@ -134,11 +135,14 @@ def process_pdf():
             text=True,  # Return output as string
             capture_output=True  # Capture stdout and stderr
         )
+      
 
         # Check if the script executed successfully
+       
         if result.returncode == 0:
-            print("inside it ")
-            return f"Script Output:\n{result.stdout}"
+            invoice_id = result.stdout.strip()  # Assume the script prints the InvoiceID
+            return redirect(url_for('invoice_details', invoice_id=invoice_id))
+
         else:
             return f"Script Error:\n{result.stderr}", 500
 

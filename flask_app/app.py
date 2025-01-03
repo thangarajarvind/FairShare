@@ -131,6 +131,14 @@ def split():
     # """, (user_id,))
     
     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+
+@app.route('/')
+def invoice():
+   
+    invoice_id = request.args.get('invoice_id', type=int) 
+
+    # Execute the query using the dynamic invoice_id
+    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
     # mycursor.execute("""

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, url_for
+from flask import Flask, render_template, request, jsonify, session, url_for, redirect
 import traceback
 import mysql.connector
 import re
@@ -134,20 +134,12 @@ def split():
     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
     data = mycursor.fetchall()
 
-    # mycursor.execute("""
-    #     SELECT * FROM Invoice
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    mycursor.execute("Select * from Invoice where InvoiceID='140'")
+    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
     meta_data = mycursor.fetchall()
 
-    headers = ("","Item name", "Quantity", "Price")
+    headers = ("", "Item name", "Quantity", "Price")
 
-    return render_template('display_table.html', title='FairShare', headings = headers, data = data, meta_data = meta_data)
-
-
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
 @app.route('/upload-pdf', methods=['GET', 'POST'])
 def upload_pdf():
     if request.method == 'POST':
@@ -185,11 +177,14 @@ def process_pdf():
             text=True,  # Return output as string
             capture_output=True  # Capture stdout and stderr
         )
+      
 
         # Check if the script executed successfully
+       
         if result.returncode == 0:
-            print("inside it ")
-            return f"Script Output:\n{result.stdout}"
+            invoice_id = result.stdout.strip()  # Assume the script prints the InvoiceID
+            return redirect(url_for('invoice_details', invoice_id=invoice_id))
+
         else:
             return f"Script Error:\n{result.stderr}", 500
 

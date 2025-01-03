@@ -137,8 +137,9 @@ def split():
     # """, (user_id,))
     
     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+
 @app.route('/')
-def invoice_details():
+def invoice():
    
     invoice_id = request.args.get('invoice_id', type=int) 
 

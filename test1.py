@@ -124,11 +124,27 @@ if existing_count == 0:  # If the OrderNumber doesn't exist, insert it
     mycursor.execute(sql, val)
 
     # Get the InvoiceID after insertion
-    sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber = %s"
+    sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber = %s "
     mycursor.execute(sql, (order_number,))
     myresult = mycursor.fetchall()
     for x in myresult:
         invoice_id = x[0]
+    for i in range(len(product_data.index)):
+        item_name = product_data['Product_Name'].iloc[i]
+        qnt = product_data['Qnt'].iloc[i]
+        price = product_data['Price'].iloc[i][1:]  # Removing the dollar sign
+
+        # Validate if price is a valid number
+        if price.lower() == "unknown" or not re.match(r"^\d+(\.\d+)?$", price):
+            price = "0.0"  # or you can choose to skip this product if preferred
+        price = float(price)
+        if price >0.0:  
+            sql = "INSERT INTO InvoiceDetails (InvoiceID, ItemName, Quantity, Price) VALUES (%s, %s, %s, %s)"
+            val = (invoice_id, item_name, qnt, price)
+            mycursor.execute(sql, val)
+    
+
+
 else:
     # If the OrderNumber exists, fetch the existing InvoiceID
     sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber = %s"
@@ -137,23 +153,8 @@ else:
     for x in myresult:
         invoice_id = x[0]
 
-# Insert product details into InvoiceDetails
-for i in range(len(product_data.index)):
-    item_name = product_data['Product_Name'].iloc[i]
-    qnt = product_data['Qnt'].iloc[i]
-    price = product_data['Price'].iloc[i][1:]  # Removing the dollar sign
 
-    # Validate if price is a valid number
-    if price.lower() == "unknown" or not re.match(r"^\d+(\.\d+)?$", price):
-        price = "0.0"  # or you can choose to skip this product if preferred
-
-    sql = "INSERT INTO InvoiceDetails (InvoiceID, ItemName, Quantity, Price) VALUES (%s, %s, %s, %s)"
-    val = (invoice_id, item_name, qnt, price)
-   
-
-    mycursor.execute(sql, val)
 print(invoice_id)
 
+
 mydb.commit()
-
-

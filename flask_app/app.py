@@ -145,6 +145,7 @@ def split():
     headers = ("", "Item name", "Quantity", "Price")
 
     return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
+
 @app.route('/upload-pdf', methods=['GET', 'POST'])
 def upload_pdf():
     if request.method == 'POST':

@@ -2,12 +2,18 @@ from flask import Flask, render_template, request, jsonify, session, url_for, re
 import traceback
 import mysql.connector
 import re
+import subprocess
+import os
+import pdfplumber
+
+from datetime import datetime
 from flaskext.mysql import MySQL
 from flask_session import Session
 from decimal import *
 import random
 import string
 
+from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 mydb = mysql.connector.connect(
@@ -51,13 +57,13 @@ def register():
                     print(f"Email check result: {email_check}") 
                     
                     if email_check:
-                        msg = 'Email already exists!'
+                        msg = 'Email already exists !'
                     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-                        msg = 'Invalid email address!'
+                        msg = 'Invalid email address !'
                     elif not re.match(r'[A-Za-z0-9]+', username):
-                        msg = 'Username must contain only characters and numbers!'
+                        msg = 'Username must contain only characters and numbers !'
                     elif not username or not password or not email:
-                        msg = 'Please fill out the form!'
+                        msg = 'Please fill out the form !'
                     else:
                         insert_cursor = mydb.cursor()
                         insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
@@ -131,6 +137,13 @@ def split():
     # """, (user_id,))
     
     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+@app.route('/')
+def invoice_details():
+   
+    invoice_id = request.args.get('invoice_id', type=int) 
+
+    # Execute the query using the dynamic invoice_id
+    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
     # mycursor.execute("""
@@ -139,7 +152,7 @@ def split():
     #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
     #     )
     # """, (user_id,))
-    mycursor.execute("Select * from Invoice where InvoiceID='140'")
+    mycursor.execute("Select * from Invoice where InvoiceID = %s", (invoice_id,))
     meta_data = mycursor.fetchall()
 
     mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
@@ -247,10 +260,10 @@ def bill_summary():
         invoice_data = mycursor.fetchall()
         
         return render_template('bill_summary.html',
-                               splits=bill_data.get('splits', []),
-                               items=bill_data.get('items', []),
-                               invoice=invoice_data[0],
-                               title='Bill Summary')
+                            splits=bill_data.get('splits', []),
+                              items=bill_data.get('items', []),
+                              invoice=invoice_data[0],
+                              title='Bill Summary')
     except Exception as e:
         print("Error in bill_summary:", str(e))
         print("Traceback:", traceback.format_exc())
@@ -642,3 +655,8 @@ def group_invoices_page(group_id):
         return render_template('group_invoices.html', group_id=group_id, message="No invoices found for this group.")
 
     return render_template('group_invoices.html', group_id=group_id, invoices=invoices)
+
+
+if __name__ == '__main__':
+    app.run(port=5009, debug=True)
+    

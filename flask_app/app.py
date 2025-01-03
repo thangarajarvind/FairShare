@@ -7,6 +7,11 @@ from flask_session import Session
 from decimal import *
 import random
 import string
+import os
+import pdfplumber
+import subprocess
+
+from datetime import datetime
 
 from werkzeug.utils import secure_filename
 app = Flask(__name__)

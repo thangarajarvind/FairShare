@@ -98,7 +98,7 @@ receipt_date = meta_data["Date"]
 order_number = meta_data["Order_Number"]
 tax = totals_data["Tax"]
 Total = totals_data["Total"]
-
+group_id = 2
 mydb = mysql.connector.connect(
   host="localhost",
   user="root",
@@ -119,8 +119,8 @@ mycursor.execute(sql, (order_number,))
 existing_count = mycursor.fetchone()[0]
 
 if existing_count == 0:  # If the OrderNumber doesn't exist, insert it
-    sql = "INSERT INTO Invoice (OrderNumber, Date, Total, Tax) VALUES (%s, %s, %s, %s)"
-    val = (order_number, receipt_date, Total, tax)
+    sql = "INSERT INTO Invoice (OrderNumber, Date, Total, Tax, group_id) VALUES (%s, %s, %s, %s, %s)"
+    val = (order_number, receipt_date, Total, tax, group_id)
     mycursor.execute(sql, val)
 
     # Get the InvoiceID after insertion

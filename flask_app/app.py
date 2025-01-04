@@ -128,27 +128,19 @@ def split():
     if not user_id:
         return redirect(url_for('login')) 
     
-    #Fetch the invoices and invoice details relevant to the logged-in user
-    # mycursor.execute("""
-    #     SELECT * FROM InvoiceDetails
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    
-    mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
+    invoice_id = request.args.get('invoice_id', type=int) 
+
+    # Execute the query using the dynamic invoice_id
+    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
-    # mycursor.execute("""
-    #     SELECT * FROM Invoice
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    mycursor.execute("Select * from Invoice where InvoiceID='140'")
+    mycursor.execute("SELECT * FROM Invoice where InvoiceID = %s", (invoice_id,))
     meta_data = mycursor.fetchall()
 
-    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
+    mycursor.execute("SELECT group_id FROM Invoice where InvoiceID = %s", (invoice_id,))
+    group_id = mycursor.fetchall()
+
+    mycursor.execute("SELECT user_id FROM user_groups where group_id= %s", (group_id[0][0],))
     user_id_list = mycursor.fetchall()
 
     user_name_list = []
@@ -191,10 +183,10 @@ def process_pdf():
 
     os.rename(file_path, new_name)
     try:
-        test1_script_path = "../test1.py"
+        pdfProcess_script_path = "../pdfProcess.py"
         # Execute the script using subprocess
         result = subprocess.run(
-            ["python", test1_script_path],  # Command to execute the external script
+            ["python", pdfProcess_script_path],  # Command to execute the external script
             text=True,  # Return output as string
             capture_output=True  # Capture stdout and stderr
         )
@@ -204,7 +196,8 @@ def process_pdf():
        
         if result.returncode == 0:
             invoice_id = result.stdout.strip()  # Assume the script prints the InvoiceID
-            return redirect(url_for('invoice_details', invoice_id=invoice_id))
+
+            return redirect(url_for('split', invoice_id=invoice_id,))
 
         else:
             return f"Script Error:\n{result.stderr}", 500
@@ -382,32 +375,6 @@ def group_invoices(group_id):
         print("Error in group_invoices:", str(e))
         print("Traceback:", traceback.format_exc())
         return "An error occurred loading the invoices", 500
-
-
-
-# @app.route('/invoice/<int:invoice_id>/details')
-# def invoice_details(invoice_id):
-#     if 'user_id' not in session:
-#         return redirect(url_for('login'))  # Redirect to login if not authenticated
-
-#     try:
-#         # Fetch details from InvoiceDetails table for the given InvoiceID
-#         query = """
-#         SELECT DetailID, ItemName, Quantity, Price 
-#         FROM InvoiceDetails 
-#         WHERE InvoiceID = %s
-#         """
-#         mycursor = mydb.cursor(dictionary=True)
-#         mycursor.execute(query, (invoice_id,))
-#         details = mycursor.fetchall()
-#         mycursor.close()
-
-#         return render_template('invoice_details.html', details=details, invoice_id=invoice_id)
-#     except Exception as e:
-#         print("Error in invoice_details:", str(e))
-#         print("Traceback:", traceback.format_exc())
-#         return "An error occurred loading the invoice details", 500
-
 #new
 
 @app.route('/invoice-details/<int:invoice_id>', methods=['GET'])
@@ -428,7 +395,7 @@ def invoice_details(invoice_id):
         mycursor.close()
 
         # Render the details on a new page
-        return render_template('invoice_details.html', invoice_details=invoice_details, invoice_id=invoice_id)
+        return render_template('invoice_details.html', invoice_details=invoice_details, invoice_id=invoice_id,)
     except Exception as e:
         print("Error fetching invoice details:", str(e))
         return "An error occurred while fetching invoice details.", 500
@@ -505,53 +472,6 @@ def confirm_splits():
             'success': False,
             'error': str(e)
         }), 500
-
-# @app.route('/split-summary/<int:invoice_id>', methods=['GET'])
-# def split_summary(invoice_id):
-#     user_id = session.get('user_id')
-#     if not user_id:
-#         return redirect(url_for('login'))  # Redirect to login if not authenticated
-    
-#     try:
-#         # Fetch invoice details for the specific InvoiceID
-#         mycursor.execute("""
-#             SELECT id.DetailID, id.ItemName, id.Quantity, id.Price, us.user_id, us.split_amount
-#             FROM InvoiceDetails id
-#             JOIN user_item_splits us ON id.DetailID = us.DetailID
-#             WHERE id.InvoiceID = %s
-#         """, (invoice_id,))
-#         data = mycursor.fetchall()
-
-#         # Organize data by username
-#         result = {}
-#         for row in data:
-#             detail_id, item_name, quantity, price, user_id, split_amount = row
-#             original_price = price * quantity
-#             total_shares = sum(1 for r in data if r[0] == detail_id)  # Total number of shares
-#             user_share = split_amount * total_shares
-
-#             # Get the username for this user_id
-#             mycursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
-#             username = mycursor.fetchone()[0]
-
-#             if username not in result:
-#                 result[username] = []
-
-#             result[username].append({
-#                 'ItemName': item_name,
-#                 'Quantity': quantity,
-#                 'OriginalPrice': original_price,
-#                 'Shares': total_shares,
-#                 'YourShare': user_share
-#             })
-
-#         return render_template('split_summary.html', result=result)
-
-#     except Exception as e:
-#         print("Error in split-summary:", str(e))
-#         return "An error occurred", 500
-
-#new 
 
 @app.route('/split-summary/<int:invoice_id>')
 def split_summary(invoice_id):
@@ -670,11 +590,6 @@ def create_group():
 
     return render_template('create_group.html')
 
-
-# @app.route('/group_invoices/<int:group_id>')
-# def group_invoices(group_id):
-#     # Logic for displaying group invoices, replace with actual logic
-#     return f"Displaying invoices for group ID: {group_id}"
 
 @app.route('/group_invoices/<int:group_id>')
 def group_invoices_page(group_id):

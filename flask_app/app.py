@@ -80,7 +80,7 @@ def invoice_details():
    
     invoice_id = request.args.get('invoice_id', type=int) 
 
-    # Execute the query using the dynamic invoice_id
+   
     mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
@@ -90,6 +90,8 @@ def invoice_details():
     headers = ("", "Item name", "Quantity", "Price")
 
     return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
+
+
 @app.route('/upload-pdf', methods=['GET', 'POST'])
 def upload_pdf():
     if request.method == 'POST':

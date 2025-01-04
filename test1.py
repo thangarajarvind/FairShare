@@ -2,14 +2,15 @@ import pandas as pd
 from nltk.tokenize import word_tokenize
 from pypdf import PdfReader
 import re
+from flask import redirect, url_for
 import mysql.connector
 from datetime import datetime
 
 # Initialize reader and datasets
-reader = PdfReader("img/test.pdf")
+reader = PdfReader("uploads/reciept.pdf")
 product_data = pd.DataFrame(columns=["Product_Name", "Qnt", "Price"])
-totals_data = {"Subtotal": None, "Savings": None, "Tax": None, "Total": None}
-meta_data = {"Date": None, "Order_Number":None}
+totals_data = {"Total": None, "Savings": None, "Tax": None, "Total": None}
+meta_data = {"Date": None, "Order_Number": None}
 
 # Helper function to extract product details
 def extract_details(line):
@@ -45,9 +46,9 @@ for j, page in enumerate(reader.pages):
             continue  # Skip headers and irrelevant lines
 
         # Detect and stop product processing when totals start
-        if "Subtotal" in line:
+        if "total" in line:
             processing_products = False
-            totals_data["Subtotal"] = line.split("$")[-1].strip()
+            totals_data["total"] = line.split("$")[-1].strip()
             continue
             
         if "Order#" in line:
@@ -93,21 +94,16 @@ if buffer:
         ignore_index=True,
     )
 
-print("\nTotals Data:")
-print(totals_data)
-print("\nMeta Data:")
-print(meta_data)
-
 receipt_date = meta_data["Date"]
-order_numebr = meta_data["Order_Number"]
+order_number = meta_data["Order_Number"]
 tax = totals_data["Tax"]
-sub_total = totals_data["Subtotal"]
+Total = totals_data["Total"]
 
 mydb = mysql.connector.connect(
-  host = "localhost",
-  user = "root",
-  password = "",
-  database = "InvoiceDB"
+  host="localhost",
+  user="root",
+  password="",
+  database="InvoiceDB"
 )
 
 mycursor = mydb.cursor()
@@ -117,31 +113,48 @@ def mdy_to_ymd(d):
 
 receipt_date = mdy_to_ymd(receipt_date)
 
-sql = "INSERT INTO Invoice (OrderNumber, Date, Total, Tax) VALUES (%s, %s, %s, %s)"
-val = (order_numebr, receipt_date, sub_total, tax)
+# Check if OrderNumber already exists
+sql = "SELECT COUNT(*) FROM Invoice WHERE OrderNumber = %s"
+mycursor.execute(sql, (order_number,))
+existing_count = mycursor.fetchone()[0]
 
-mycursor.execute(sql, val)
-
-sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber =%s"
-mycursor.execute(sql,(order_numebr,))
-
-myresult = mycursor.fetchall()
-for x in myresult:
-  invoice_id = x[0]
-
-for i in range(len(product_data.index)):
-    item_name = product_data['Product_Name'].iloc[i]
-    qnt = product_data['Qnt'].iloc[i]
-    price = product_data['Price'].iloc[i][1:]
-
-    sql = "INSERT INTO InvoiceDetails (InvoiceID, ItemName, Quantity, Price) VALUES (%s, %s, %s, %s)"
-    val = (invoice_id, item_name, qnt, price)
-    print(invoice_id, item_name, qnt, price)
-
+if existing_count == 0:  # If the OrderNumber doesn't exist, insert it
+    sql = "INSERT INTO Invoice (OrderNumber, Date, Total, Tax) VALUES (%s, %s, %s, %s)"
+    val = (order_number, receipt_date, Total, tax)
     mycursor.execute(sql, val)
 
+    # Get the InvoiceID after insertion
+    sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber = %s "
+    mycursor.execute(sql, (order_number,))
+    myresult = mycursor.fetchall()
+    for x in myresult:
+        invoice_id = x[0]
+    for i in range(len(product_data.index)):
+        item_name = product_data['Product_Name'].iloc[i]
+        qnt = product_data['Qnt'].iloc[i]
+        price = product_data['Price'].iloc[i][1:]  # Removing the dollar sign
+
+        # Validate if price is a valid number
+        if price.lower() == "unknown" or not re.match(r"^\d+(\.\d+)?$", price):
+            price = "0.0"  # or you can choose to skip this product if preferred
+        price = float(price)
+        if price >0.0:  
+            sql = "INSERT INTO InvoiceDetails (InvoiceID, ItemName, Quantity, Price) VALUES (%s, %s, %s, %s)"
+            val = (invoice_id, item_name, qnt, price)
+            mycursor.execute(sql, val)
+    
+
+
+else:
+    # If the OrderNumber exists, fetch the existing InvoiceID
+    sql = "SELECT InvoiceID FROM Invoice WHERE OrderNumber = %s"
+    mycursor.execute(sql, (order_number,))
+    myresult = mycursor.fetchall()
+    for x in myresult:
+        invoice_id = x[0]
+
+
+print(invoice_id)
+
+
 mydb.commit()
-
-print(mycursor.rowcount, "record inserted.")
-
-print(product_data)

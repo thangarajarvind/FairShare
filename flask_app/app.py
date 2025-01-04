@@ -7,7 +7,13 @@ from flask_session import Session
 from decimal import *
 import random
 import string
+import os
+import pdfplumber
+import subprocess
 
+from datetime import datetime
+
+from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 mydb = mysql.connector.connect(
@@ -51,13 +57,13 @@ def register():
                     print(f"Email check result: {email_check}") 
                     
                     if email_check:
-                        msg = 'Email already exists!'
+                        msg = 'Email already exists !'
                     elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-                        msg = 'Invalid email address!'
+                        msg = 'Invalid email address !'
                     elif not re.match(r'[A-Za-z0-9]+', username):
-                        msg = 'Username must contain only characters and numbers!'
+                        msg = 'Username must contain only characters and numbers !'
                     elif not username or not password or not email:
-                        msg = 'Please fill out the form!'
+                        msg = 'Please fill out the form !'
                     else:
                         insert_cursor = mydb.cursor()
                         insert_cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', 
@@ -141,55 +147,65 @@ def invoice():
     mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
-    # mycursor.execute("""
-    #     SELECT * FROM Invoice
-    #     WHERE InvoiceID IN (
-    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
-    #     )
-    # """, (user_id,))
-    mycursor.execute("Select * from Invoice where InvoiceID='140'")
+    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
     meta_data = mycursor.fetchall()
 
-    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
-    user_id_list = mycursor.fetchall()
-
-    user_name_list = []
-    for i in user_id_list:
-        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
-        user_name = mycursor.fetchall()
-        user_name_list.append(user_name[0][0])
-
     headers = ("", "Item name", "Quantity", "Price")
-    
-    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
 
-#new
-@app.route('/homepage')
-def homepage():
-    return render_template('index.html')
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
 
-@app.route('/')
-def index():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login')) 
-    
-    try:
-        # Fetch groups associated with the logged-in user
-        query = """
-        SELECT g.group_id, g.group_name 
-        FROM groups g 
-        JOIN user_groups ug ON g.group_id = ug.group_id 
-        WHERE ug.user_id = %s
-        """
-        mycursor.execute(query, (user_id,))
-        groups = mycursor.fetchall()
+@app.route('/upload-pdf', methods=['GET', 'POST'])
+def upload_pdf():
+    if request.method == 'POST':
         
-        return render_template('group_list.html', groups=groups)
-    except Exception as e:
-        print("Error fetching groups:", str(e))
-        return "An error occurred loading the groups", 500
+        pass
+    return render_template('upload-pdf.html')
 
+@app.route("/process-pdf", methods =['GET', 'POST'])
+def process_pdf():
+    UPLOAD_FOLDER = 'uploads'
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure the uploads folder exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    # Check if a file is uploaded
+    if 'pdf_file' not in request.files:
+        return "No file uploaded", 400
+
+    pdf_file = request.files['pdf_file']
+    if pdf_file.filename == '':
+        return "No file selected", 400
+    
+    # Save the file to the upload folder
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(pdf_file.filename))
+    pdf_file.save(file_path)
+    
+    new_name = os.path.join(app.config['UPLOAD_FOLDER'], 'reciept.pdf')
+
+    os.rename(file_path, new_name)
+    try:
+        test1_script_path = "../test1.py"
+        # Execute the script using subprocess
+        result = subprocess.run(
+            ["python", test1_script_path],  # Command to execute the external script
+            text=True,  # Return output as string
+            capture_output=True  # Capture stdout and stderr
+        )
+      
+
+        # Check if the script executed successfully
+       
+        if result.returncode == 0:
+            invoice_id = result.stdout.strip()  # Assume the script prints the InvoiceID
+            return redirect(url_for('invoice_details', invoice_id=invoice_id))
+
+        else:
+            return f"Script Error:\n{result.stderr}", 500
+
+    except Exception as e:
+        return f"Error executing script: {str(e)}", 500 
+
+    
 
 @app.route('/api/bills/store', methods=['POST'])
 def receive_api_data():

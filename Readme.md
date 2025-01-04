@@ -1,6 +1,6 @@
-<p align="center">
+ <p align="center">
   <img src="https://github.com/thangarajarvind/FairShare/blob/main/FairShare_logo.png" width="200" />
-</p>
+ </p>
 
 # Fair Share
 

@@ -5,6 +5,7 @@ import re
 from flask import redirect, url_for
 import mysql.connector
 from datetime import datetime
+import sys
 
 # Initialize reader and datasets
 reader = PdfReader("uploads/reciept.pdf")
@@ -98,7 +99,7 @@ receipt_date = meta_data["Date"]
 order_number = meta_data["Order_Number"]
 tax = totals_data["Tax"]
 Total = totals_data["Total"]
-group_id = 2
+group_id = sys.argv[1]
 mydb = mysql.connector.connect(
   host="localhost",
   user="root",

@@ -129,6 +129,7 @@ def split():
         return redirect(url_for('login')) 
     
     invoice_id = request.args.get('invoice_id', type=int) 
+    print(invoice_id)
 
     # Execute the query using the dynamic invoice_id
     mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
@@ -139,6 +140,7 @@ def split():
 
     mycursor.execute("SELECT group_id FROM Invoice where InvoiceID = %s", (invoice_id,))
     group_id = mycursor.fetchall()
+    print(group_id)
 
     mycursor.execute("SELECT user_id FROM user_groups where group_id= %s", (group_id[0][0],))
     user_id_list = mycursor.fetchall()
@@ -181,12 +183,13 @@ def process_pdf():
     
     new_name = os.path.join(app.config['UPLOAD_FOLDER'], 'reciept.pdf')
 
+    group_id = session.get('group_id')
     os.rename(file_path, new_name)
     try:
         pdfProcess_script_path = "../pdfProcess.py"
         # Execute the script using subprocess
         result = subprocess.run(
-            ["python", pdfProcess_script_path],  # Command to execute the external script
+            ["python", pdfProcess_script_path, str(group_id)],  # Command to execute the external script
             text=True,  # Return output as string
             capture_output=True  # Capture stdout and stderr
         )
@@ -336,6 +339,7 @@ def group_invoices(group_id):
         return redirect(url_for('login'))  # Redirect to login if not authenticated
 
     user_id = session['user_id']
+    session['group_id'] = group_id
 
     try:
         # Step 1: Fetch group details to ensure the group_id exists

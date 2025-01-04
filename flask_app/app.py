@@ -137,22 +137,29 @@ def split():
     # """, (user_id,))
     
     mycursor.execute("Select * from InvoiceDetails where InvoiceID='140'")
-
-@app.route('/')
-def invoice():
-   
-    invoice_id = request.args.get('invoice_id', type=int) 
-
-    # Execute the query using the dynamic invoice_id
-    mycursor.execute("SELECT * FROM InvoiceDetails where InvoiceID = %s", (invoice_id,))
     data = mycursor.fetchall()
 
-    mycursor.execute("SELECT * FROM Invoice where InvoiceID='140'")
+    # mycursor.execute("""
+    #     SELECT * FROM Invoice
+    #     WHERE InvoiceID IN (
+    #         SELECT InvoiceID FROM user_groups WHERE user_id = %s
+    #     )
+    # """, (user_id,))
+    mycursor.execute("Select * from Invoice where InvoiceID='140'")
     meta_data = mycursor.fetchall()
 
-    headers = ("", "Item name", "Quantity", "Price")
+    mycursor.execute("SELECT user_id FROM user_groups where group_id='2'")
+    user_id_list = mycursor.fetchall()
 
-    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data)
+    user_name_list = []
+    for i in user_id_list:
+        mycursor.execute("SELECT username FROM users where user_id='"+str(i[0])+"'")
+        user_name = mycursor.fetchall()
+        user_name_list.append(user_name[0][0])
+
+    headers = ("", "Item name", "Quantity", "Price")
+    
+    return render_template('display_table.html', title='FairShare', headings=headers, data=data, meta_data=meta_data, group_data = user_name_list)
 
 @app.route('/upload-pdf', methods=['GET', 'POST'])
 def upload_pdf():

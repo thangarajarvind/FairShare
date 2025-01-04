@@ -244,6 +244,32 @@ def receive_api_data():
 
 app.secret_key = 'FairShare'
 
+#new
+@app.route('/homepage')
+def homepage():
+    return render_template('index.html')
+
+@app.route('/')
+def index():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login')) 
+    
+    try:
+        # Fetch groups associated with the logged-in user
+        query = """
+        SELECT g.group_id, g.group_name 
+        FROM groups g 
+        JOIN user_groups ug ON g.group_id = ug.group_id 
+        WHERE ug.user_id = %s
+        """
+        mycursor.execute(query, (user_id,))
+        groups = mycursor.fetchall()
+        
+        return render_template('group_list.html', groups=groups)
+    except Exception as e:
+        print("Error fetching groups:", str(e))
+        return "An error occurred loading the groups", 500
 
 @app.route('/bill-summary')
 def bill_summary():
